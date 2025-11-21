@@ -2,7 +2,9 @@ from flask import Flask, jsonify, request
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash
-
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import JWTManager, create_access_token
+from datetime import timedelta
 
 # Connecting to the database 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -16,6 +18,10 @@ def get_db_connection():
 
 def create_app():
     app = Flask(__name__)
+
+    app.config["JWT_SECRET_KEY"] = "secret_key"   
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1) # The token expires in one hour
+    jwt = JWTManager(app)
 
     # Check if service is running and database is reachable - return JSON message 
     @app.route("/health", methods=["GET"])
@@ -138,6 +144,78 @@ def create_app():
 
             }
         }), 201 # created
+
+    """API to login an existing user"""
+    @app.route("/users/login", methods= ["POST"])
+    def login_user():
+        data = request.get_json() or {}
+
+        # Validate the input fields
+        if "username" not in data or "password" not in data:
+            return jsonify({"error": "Username and password are required to login."}), 400
+        
+        # Extract data
+        username = data["username"].strip()
+        password = data["password"]
+
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Get the user by username, if exists
+            cur.execute(
+                """
+                SELECT user_id, username, email, password_hash, role_id
+                FROM users WHERE username = ?""", (username,),)
+            user = cur.fetchone()
+
+            # Check if user does not exist using username
+            if user is None:
+                return jsonify({"error": "Username does not exist."}), 401
+            
+            # Check if the password is correct 
+            password_match = check_password_hash(user["password_hash"], password)
+            if not password_match:
+                return jsonify({"error": "Username and password do not match"}), 401
+            
+            # If user exists, username and password are correct, fetch the role to authorize
+            cur.execute("SELECT role FROM roles WHERE role_id = ?", (user["role_id"],)) 
+            role_row = cur.fetchone() # returns a row with a role
+            role = role_row["role"] if role_row else "unknown"
+
+            # Create JWT token with the user_id, username, and role (for authorization)
+            access_token = create_access_token(
+                identity = {
+                    "user_id": user["user_id"],
+                    "username": user["username"],
+                    "role": role
+                }
+            )
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+        
+        # Json response
+        return jsonify ({
+            "message": "Login successful",
+            "token": access_token,
+            "user": {
+                "user_id": user["user_id"],
+                "username": user["username"],
+                "email": user["email"],
+                "role": role
+            }
+        }), 200
+
+
+
+
+
+
+
+
 
 
 
