@@ -15,7 +15,7 @@ def create_db_tables():
             -- ROLES
             CREATE TABLE IF NOT EXISTS roles (
                 role_id     INTEGER PRIMARY KEY,
-                privilege   TEXT NOT NULL UNIQUE,
+                role        TEXT NOT NULL UNIQUE,
                 description TEXT NOT NULL
             );
 
