@@ -596,7 +596,48 @@ def create_app():
 
         return jsonify({"users": users_list}), 200
 
+    """Admin API: get a specific user's profile by username"""
 
+    @app.route("/users/<string:username>", methods= ["GET"])
+    @jwt_required()
+    def get_user_by_username(username):
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT u.user_id, u.username, u.email, u.name, r.role
+                FROM users u 
+                JOIN roles r ON u.role_id = r.role_id
+                WHERE u.username =?""",
+            (username,)
+            )
+
+            user = cur.fetchone()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+            
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()   
+        
+        return jsonify({
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "email": user["email"],
+        "name": user["name"],
+        "role": user["role"]
+    }), 200
+
+    
 
 
     return app
