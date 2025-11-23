@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import requests
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash
@@ -66,6 +67,80 @@ def create_app():
             conn.close()
         return jsonify({"message": "Roles initialized (or already existed)."}), 201 # created 
     
+    """API to initialize the admim's profile to the database"""
+
+    @app.route("/admin/init", methods=["POST"])
+    def init_admin():
+        data = request.get_json() or {}
+        required = ["username", "email", "password", "name"]
+
+        for field in required:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing field: {field}"}), 400
+
+        username = data["username"].strip()
+        email = data["email"].strip()
+        password = data["password"]
+        name = data["name"].strip()
+        role = "admin"
+
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Check if any admin already exists
+            cur.execute("""
+                SELECT 1 FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                WHERE r.role = 'admin'
+            """)
+            if cur.fetchone():
+                return jsonify({"error": "Admin already initialized"}), 403
+
+            # Get the admin role ID
+            cur.execute("SELECT role_id FROM roles WHERE role = 'admin'")
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Admin role missing from database"}), 500
+
+            role_id = row["role_id"]
+
+            # Check if username/email is already taken
+            cur.execute("""
+                SELECT 1 FROM users WHERE username=? OR email=?
+            """, (username, email))
+            if cur.fetchone():
+                return jsonify({"error": "Username or email already exists"}), 409
+
+            # Hash password
+            password_hash = generate_password_hash(password)
+
+            # Insert admin
+            cur.execute("""
+                INSERT INTO users (username, email, password_hash, name, role_id)
+                VALUES (?, ?, ?, ?, ?)
+            """, (username, email, password_hash, name, role_id))
+
+            conn.commit()
+            admin_id = cur.lastrowid
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Admin user created successfully",
+            "admin": {
+                "user_id": admin_id,
+                "username": username,
+                "email": email,
+                "name": name,
+                "role": "admin"
+            }
+        }), 201
+
+
     """API to post a new user to the users table in database"""
 
     @app.route("/users/register", methods= ["POST"])
@@ -411,6 +486,115 @@ def create_app():
                 "message": "Account deleted successfully. All active bookings were cancelled, and all reviews were deleted.",
                 "user_id_deleted": user_id
         }), 200   
+    
+    
+    """Admin only API: assign roles"""
+    @app.route("/users/<int:user_id>/role", methods= ["PUT"])
+    @jwt_required()
+
+    def assign_change_role(user_id):
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        
+        # Extract new role
+        data= request.get_json() or {}
+        new_role = data.get("role")
+
+        # Validate input 
+        if not new_role:
+            return jsonify({"Role is required"}), 400
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            
+            # Check if the user exists 
+            cur.execute(
+                """
+                SELECT * FROM users WHERE user_id =?
+                """, (user_id,)
+            )
+            user = cur.fetchone()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+            
+            # find the role ID for the new role
+            cur.execute(
+                """
+                SELECT role_id FROM roles WHERE role =?""", 
+                (new_role,))
+            role_id_row = cur.fetchone()
+            if not role_id_row:
+                return jsonify({"error": "Invalid role"}), 400
+            role_id = role_id_row["role_id"]
+
+            # Update the user role
+            cur.execute(
+                """ 
+                UPDATE users SET role_id = ? WHERE user_id =? """,
+                (role_id, user_id)
+            )
+
+            conn.commit()
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+        return jsonify({
+            "message": "Role updated successfully",
+            "user": {
+                "user_id": user_id,
+                "new_role": new_role
+            }
+        }), 200
+
+    
+
+    """Admin only API: get all users"""
+    @app.route("/users", methods= ["GET"])
+    @jwt_required()
+
+    def get_all_users():
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT u.user_id, u.username, u.email, u.name, r.role
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                ORDER BY u.user_id ASC"""
+            )
+
+            users = cur.fetchall()
+
+            # Response format 
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "user_id": user["user_id"],
+                    "username": user["username"],
+                    "email": user["email"],
+                    "name": user["name"],
+                    "role": user["role"]            
+                })
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        return jsonify({"users": users_list}), 200
 
 
 
