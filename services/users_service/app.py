@@ -341,8 +341,76 @@ def create_app():
     }), 200
 
 
+    """API to delete own account after password confirmation"""
+    @app.route("/users/delete", methods= ["DELETE"])
+    @jwt_required()
 
+    def delete_my_profile():
+        user_id = int(get_jwt_identity())  
+        claims = get_jwt()                 
+        role = claims["role"]
+    
+    
+        # Validate user type
+        if role == "service_account":
+            return jsonify({"error": "Service accounts cannot delete their own profile"}), 403
+        
+        data = request.get_json() or {}
+        password_confirm = data.get("password")
 
+        if not password_confirm:
+            return jsonify({"error": "Password confirmation is required"}), 400
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Fetch password to compare 
+            cur.execute(
+                """
+                SELECT password_hash FROM users WHERE user_id =?""",
+                (user_id,)
+            )
+
+            password_row = cur.fetchone()
+            if not password_row:
+                return jsonify({"error": "User not found"}), 404
+            
+            password_hash = password_row["password_hash"]
+
+            if not check_password_hash(password_hash, password_confirm):
+                return jsonify({"error": "Incorrect password"}), 401
+            
+            # Cancel all active bookings upon deletion
+            cur.execute(
+                """
+            UPDATE bookings
+            SET status = 'cancelled'
+            WHERE user_id =? AND status = 'confirmed' """,
+            (user_id,) )
+
+            # Remove all previous reviews 
+            cur.execute(
+                """
+                DELETE FROM reviews WHERE user_id =? """,
+                (user_id,)
+            )
+
+            # Delete user 
+            cur.execute("""
+                DELETE FROM users WHERE user_id = ?""",
+                (user_id,))
+            
+            conn.commit()
+    
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+        return jsonify({
+                "message": "Account deleted successfully. All active bookings were cancelled, and all reviews were deleted.",
+                "user_id_deleted": user_id
+        }), 200   
 
 
 
