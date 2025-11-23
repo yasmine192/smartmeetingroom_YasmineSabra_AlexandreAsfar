@@ -5,6 +5,8 @@ from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token
 from datetime import timedelta
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+
 
 # Connecting to the database 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -73,7 +75,7 @@ def create_app():
         data = request.get_json() or {} # if nothing sent
 
         # Validate required fields
-        required_fields = ["username", "email", "password", "name", "role"]
+        required_fields = ["username", "email", "password", "name"]
         missing_fields = []
         for field in required_fields:
             if field not in data or not data[field]:
@@ -86,7 +88,7 @@ def create_app():
         email = data["email"].strip()
         password = data["password"]
         name = data["name"].strip()
-        role = data["role"].strip()
+        forced_role = "user" #regular
 
         # Establish database connection
         conn = get_db_connection()
@@ -95,8 +97,9 @@ def create_app():
 
             # Find the role ID of the role in roles table
             cur.execute(
-                "SELECT role_id FROM roles WHERE role = ?", (role,))
+                "SELECT role_id FROM roles WHERE role = ?", (forced_role,),)
             role_row = cur.fetchone() # return a row object of role_id
+
             if role_row is None:
                 return jsonify({"error": "Invalid role"}), 400
             
@@ -140,12 +143,13 @@ def create_app():
                 "username": username,
                 "email": email,
                 "name": name,
-                "role": role
+                "role": forced_role
 
             }
         }), 201 # created
 
     """API to login an existing user"""
+
     @app.route("/users/login", methods= ["POST"])
     def login_user():
         data = request.get_json() or {}
@@ -171,26 +175,30 @@ def create_app():
 
             # Check if user does not exist using username
             if user is None:
-                return jsonify({"error": "Username does not exist."}), 401
+                return jsonify({"error": "Invalid username or password"}), 401
             
             # Check if the password is correct 
             password_match = check_password_hash(user["password_hash"], password)
             if not password_match:
-                return jsonify({"error": "Username and password do not match"}), 401
+                return jsonify({"error": "Invalid username or password"}), 401
             
             # If user exists, username and password are correct, fetch the role to authorize
             cur.execute("SELECT role FROM roles WHERE role_id = ?", (user["role_id"],)) 
             role_row = cur.fetchone() # returns a row with a role
             role = role_row["role"] if role_row else "unknown"
 
+            # Block service_account login
+            if role == "service_account":
+                return jsonify({"error": "This account type cannot log in."}), 403
+
             # Create JWT token with the user_id, username, and role (for authorization)
             access_token = create_access_token(
-                identity = {
-                    "user_id": user["user_id"],
-                    "username": user["username"],
-                    "role": role
-                }
-            )
+                identity=str(user["user_id"]),
+                additional_claims={
+            "username": user["username"],
+            "role": role
+        }
+)
 
         except sqlite3.Error as e:
             return jsonify({"error": f"Database error: {e}"}), 500
@@ -209,10 +217,128 @@ def create_app():
             }
         }), 200
 
+    """API to allow all user types to read their own profile."""
+    @app.route("/users/me", methods= ["GET"])
+    @jwt_required()
+    def get_my_profile():
+
+        # Get the logged in user id and claims from token
+        user_id = int(get_jwt_identity())  
+        claims = get_jwt()                 
+        role = claims["role"]
+
+
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Fetch the user info by ID
+            cur.execute(
+                """
+                SELECT u.user_id, u.username, u.email, u.name, r.role 
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                WHERE u.user_id =?
+                """,
+                (user_id,))
+            
+            user = cur.fetchone()
+            
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        # Success response
+        return jsonify({
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "email": user["email"],
+        "name": user["name"],
+        "role": user["role"]
+        }), 200
 
 
 
+    """API to update own profile."""
+    @app.route("/users/me", methods= ["PUT"])
+    @jwt_required()
 
+    def update_my_profile():
+        user_id = int(get_jwt_identity())  
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # Validate user type
+        if role == "service_account":
+            return jsonify({"error": "Service accounts cannot update profile"}), 403
+
+        # Extraxt user profile data
+        data = request.get_json() or {}
+        allowed_fields = ["username", "email", "password", "name"]
+        new_username = data.get("username")
+        new_email = data.get("email")
+        new_password = data.get("password")
+        new_name = data.get("name")
+
+        # If nothing is provided
+        if not any([new_username, new_email, new_password, new_name]):
+            return jsonify({"error": "No fields to update"}), 400
+          
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Get current user
+            cur.execute(
+                """
+                SELECT * FROM users WHERE user_id = ?
+                """,
+                (user_id,)
+            )
+            current_user = cur.fetchone()
+
+            if not current_user:
+                return jsonify({"error": "User not found"}), 404
+            
+            # Set final values
+            final_username = new_username.strip() if new_username else current_user["username"]
+            final_email = new_email.strip() if new_email else current_user["email"]
+            final_name = new_name.strip() if new_name else current_user["name"]
+            final_password_hash = generate_password_hash(new_password) if new_password else current_user["password_hash"]
+
+            # Verify uniqueness of username and email excluding current user
+            cur.execute(
+                    """
+                    SELECT 1 FROM users WHERE (username =? OR email = ?) AND user_id !=?""" , 
+                    (final_username, final_email, user_id),
+                )
+            if cur.fetchone():
+                    return jsonify({"error": "Username or email already exists"}), 409 # conflict
+                
+            # Update the user
+            cur.execute(
+                """
+                UPDATE users 
+                SET username=?, email=?, password_hash =?, name=?  WHERE user_id = ?""",
+                (final_username, final_email,  final_password_hash,final_name, user_id)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        return jsonify({
+        "message": "Profile updated successfully",
+        "user": {
+            "user_id": user_id,
+            "username": final_username,
+            "email": final_email,
+            "name": final_name
+        }
+    }), 200
 
 
 
