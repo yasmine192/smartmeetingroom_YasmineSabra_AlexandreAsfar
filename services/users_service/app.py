@@ -554,7 +554,49 @@ def create_app():
 
     
 
-   
+    """Admin only API: get all users"""
+    @app.route("/users", methods= ["GET"])
+    @jwt_required()
+
+    def get_all_users():
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT u.user_id, u.username, u.email, u.name, r.role
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                ORDER BY u.user_id ASC"""
+            )
+
+            users = cur.fetchall()
+
+            # Response format 
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "user_id": user["user_id"],
+                    "username": user["username"],
+                    "email": user["email"],
+                    "name": user["name"],
+                    "role": user["role"]            
+                })
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        return jsonify({"users": users_list}), 200
+
+
 
 
     return app
