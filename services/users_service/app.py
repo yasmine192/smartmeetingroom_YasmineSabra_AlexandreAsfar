@@ -506,7 +506,7 @@ def create_app():
 
         # Validate input 
         if not new_role:
-            return jsonify({"Role is required"}), 400
+            return jsonify({"error":"Role is required"}), 400
         
         conn = get_db_connection()
         try:
@@ -563,8 +563,8 @@ def create_app():
         role = claims["role"]
 
         # check if the user is authorized (admins only)
-        if role != "admin":
-            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        if role not in["admin", "auditor"]:
+            return jsonify({"error": "Not authorized."}), 403
         
         conn = get_db_connection()
         try:
@@ -597,16 +597,15 @@ def create_app():
         return jsonify({"users": users_list}), 200
 
     """Admin API: get a specific user's profile by username"""
-
-    @app.route("/users/<string:username>", methods= ["GET"])
+    @app.route("/username/<string:username>", methods= ["GET"])
     @jwt_required()
     def get_user_by_username(username):
         claims = get_jwt()                 
         role = claims["role"]
 
         # check if the user is authorized (admins only)
-        if role != "admin":
-            return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        if role not in ["admin", "auditor"]:
+            return jsonify({"error": "Not authorized."}), 403
         
         conn = get_db_connection()
         try:
@@ -703,7 +702,7 @@ def create_app():
 
         # check if the user is authorized (admins only)
         if role != "admin":
-            return jsonify({"error": "Only admins can reset passwords."}), 403
+            return jsonify({"error": "Only admins can delete users."}), 403
         
         # Prevent the admin from deleting their account
         if admin_id == user_id:
