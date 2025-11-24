@@ -692,6 +692,61 @@ def create_app():
             "user_id": user_id
         }), 200  
 
+    """Admin API: delete a user's account"""
+    @app.route("/users/<int:user_id>", methods=["DELETE"])
+    @jwt_required()
+
+    def delete_user(user_id):
+        admin_id = int(get_jwt_identity())
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins can reset passwords."}), 403
+        
+        # Prevent the admin from deleting their account
+        if admin_id == user_id:
+            return jsonify({"error": "Admins cannot delete their own account."}), 400
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Check if user exists
+            cur.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+            user = cur.fetchone()
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+            
+            # Cancel the active bookings
+            cur.execute(
+                """
+                UPDATE bookings
+                SET status = 'cancelled'
+                WHERE user_id =? AND status = 'confirmed' """,
+                (user_id,))
+            
+            # Delete the user
+            cur.execute(
+                """
+                DELETE FROM users WHERE user_id =?""",
+                (user_id,)
+            )
+            
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "User deleted successfully.",
+            "user_id_deleted": user_id
+        }), 200
+
     return app
 
 if __name__ == "__main__":
