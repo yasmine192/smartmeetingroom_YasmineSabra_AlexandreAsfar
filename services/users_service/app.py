@@ -637,8 +637,60 @@ def create_app():
         "role": user["role"]
     }), 200
 
-    
+    """Admin API: reset a user's password"""
+    @app.route("/users/<int:user_id>/reset-password", methods=["PUT"])
+    @jwt_required()
 
+    def reset_password(user_id):
+        claims = get_jwt()                 
+        role = claims["role"]
+
+        # check if the user is authorized (admins only)
+        if role != "admin":
+            return jsonify({"error": "Only admins can reset passwords."}), 403
+        
+        # Extract new password
+        data = request.get_json()
+        new_password = data.get("password")
+
+        if not new_password:
+            return jsonify({"error": "New password is required."}), 400
+
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Check if the user exists
+            cur.execute(
+                """ SELECT user_id FROM users where user_id =?""",
+                (user_id,)
+            )
+            user = cur.fetchone()
+            
+            if not user:
+                return jsonify({"error": "User not found."}), 404
+            
+            # Hash the new password
+            new_password_hash = generate_password_hash(new_password)
+
+            # Update the user's password
+            cur.execute(
+                """
+                UPDATE users SET password_hash=? WHERE user_id =?""",
+                (new_password_hash, user_id)
+            )
+
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Password reset successfully.",
+            "user_id": user_id
+        }), 200  
 
     return app
 
