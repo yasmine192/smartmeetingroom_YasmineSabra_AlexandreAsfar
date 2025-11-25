@@ -247,6 +247,89 @@ def create_app():
             "added_equipment": equi_type
         }), 201
 
+    """API to delete a room equipment"""
+    @app.route("/rooms/<int:room_id>/equipment/<int:equi_id>", methods=["DELETE"])
+    @jwt_required()
+    def delete_equipment(room_id, equi_id):
+        claims = get_jwt()
+        role = claims["role"]
+
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to delete room equipment"}), 403
+                
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            # Check if the room exists
+            cur.execute(
+                """
+                SELECT room_id FROM rooms WHERE room_id =?
+                """, (room_id,)
+            )
+            room_row = cur.fetchone()
+            if not room_row:
+                return jsonify({"error": "Room not found"}), 404
+            
+            # if the equipment does not exists - cannot delete it
+            cur.execute(
+                """
+                SELECT equi_id, type FROM equipment WHERE equi_id =?""",
+                (equi_id,)
+            )
+            equi_id_row = cur.fetchone()
+            if not equi_id_row:
+                return jsonify({"error": "Equipment not found"}), 404
+            
+            equi_type = equi_id_row["type"]
+    
+            # Check if the room already has this equipment type => decrement quantity
+            cur.execute(
+                """
+            SELECT quantity 
+            FROM room_equipment 
+            WHERE room_id =? AND equi_id = ?""",
+            (room_id, equi_id)
+            )
+            quantity_row = cur.fetchone() 
+            if not quantity_row:
+                return jsonify({
+                "error": "This equipment is not available in this room"
+            }), 404
+
+            quantity = quantity_row["quantity"] 
+
+            if quantity > 1:
+                # decrement 
+                cur.execute(
+                    """
+                    UPDATE room_equipment 
+                    SET quantity = ?
+                    WHERE room_id =? AND equi_id =?""",
+                    (quantity - 1, room_id, equi_id)
+                )
+            else:
+                # remove the equipment from the room
+                cur.execute(
+                    """
+                    DELETE FROM room_equipment 
+                    WHERE room_id =? AND equi_id=?""",
+                    (room_id, equi_id)
+                )
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Equipment removed successfully",
+            "room_id": room_id,
+            "removed_equipment": equi_type
+        }), 201
+    
+
     return app
 
 if __name__ == "__main__":
