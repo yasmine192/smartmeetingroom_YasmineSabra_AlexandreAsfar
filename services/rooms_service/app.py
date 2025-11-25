@@ -28,6 +28,9 @@ def create_app():
     def health():
         return jsonify({"service": "rooms", "status": "ok"}), 200
     
+    
+    
+
     """API to get room details by ID"""
     @app.route("/rooms/<int:room_id>", methods=["GET"]) 
     @jwt_required()
@@ -90,6 +93,8 @@ def create_app():
             "equipment": equipment_list
         }), 200
 
+
+    
 
     """API to delete a room with bookings cancellation and reviews removal"""
     @app.route("/rooms/<int:room_id>", methods=["DELETE"])
@@ -156,6 +161,7 @@ def create_app():
             "message": "Room deleted successfully",
             "room_id_deleted": room_id
         }), 200
+
 
     """API to add a room equipment"""
     @app.route("/rooms/<int:room_id>/equipment", methods=["POST"])
@@ -246,6 +252,7 @@ def create_app():
             "room_id": room_id,
             "added_equipment": equi_type
         }), 201
+    
 
     """API to delete a room equipment"""
     @app.route("/rooms/<int:room_id>/equipment/<int:equi_id>", methods=["DELETE"])
@@ -371,7 +378,8 @@ def create_app():
             "room_id": room_id,
             "room_status": new_status
         }), 200
-    
+
+
     """API to get all rooms with filters"""
     @app.route("/rooms", methods =["GET"])
     @jwt_required()
@@ -469,8 +477,6 @@ def create_app():
             conn.close()
 
         return jsonify({"rooms": final_rooms_list}), 200
-
-    
 
     return app
 

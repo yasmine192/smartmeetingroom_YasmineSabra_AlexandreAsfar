@@ -20,49 +20,6 @@ def create_app():
         return jsonify({"service": "bookings", "status": "ok"}), 200
     
 
-    # GET /bookings/user/<user_id>   → returns all bookings for a user
-
-    @app.route("/bookings/user/<int:user_id>", methods=["GET"])
-    def get_bookings_by_user(user_id):
-        conn = get_db_connection()
-        try:
-            cur = conn.cursor()
-
-            cur.execute("""
-                SELECT 
-                    booking_id,
-                    user_id,
-                    room_id,
-                    start_time,
-                    end_time,
-                    status,
-                    created_at
-                FROM bookings
-                WHERE user_id = ?
-                ORDER BY start_time DESC
-            """, (user_id,))
-
-            rows = cur.fetchall()
-
-            bookings = [
-                {
-                    "booking_id": row["booking_id"],
-                    "room_id": row["room_id"],
-                    "start_time": row["start_time"],
-                    "end_time": row["end_time"],
-                    "status": row["status"],
-                    "created_at": row["created_at"]
-                }
-                for row in rows
-            ]
-
-        except Exception as e:
-            return jsonify({"error": f"Database error: {e}"}), 500
-        finally:
-            conn.close()
-
-        return jsonify({"user_id": user_id, "bookings": bookings}), 200
-
 
 
     return app

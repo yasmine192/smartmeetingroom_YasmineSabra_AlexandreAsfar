@@ -743,7 +743,7 @@ def create_app():
 
         return jsonify({
             "message": "User deleted successfully.",
-            "id_deleted": user_id
+            "user_id_deleted": user_id
         }), 200
 
     return app

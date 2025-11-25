@@ -63,7 +63,7 @@ def create_db_tables():
                 start_time TEXT NOT NULL,
                 end_time   TEXT NOT NULL,
                 status     TEXT NOT NULL CHECK (
-                                status IN ('confirmed','cancelled')
+                                status IN ('confirmed','cancelled', 'pending')
                           ),
                 user_id    INTEGER NOT NULL,
                 room_id    INTEGER NOT NULL,
