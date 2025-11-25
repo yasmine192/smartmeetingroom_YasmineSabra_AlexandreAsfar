@@ -329,6 +329,50 @@ def create_app():
             "removed_equipment": equi_type
         }), 201
     
+    """API to mark a room out of service/available again"""
+    @app.route("/rooms/<int:room_id>/status", methods =["PUT"])
+    @jwt_required()
+    def update_room_status(room_id):
+        claims = get_jwt()
+        role = claims["role"]
+
+        # Only admins and facility managers can mark a room out of service, and mark it back as available
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to update room status"}), 403
+        
+        # Extract new status
+        data = request.get_json() or {}
+        new_status = data.get("status")
+
+        if not new_status:
+            return jsonify({"error": "New status is required"}), 400
+        
+        if new_status not in ["available", "out_of_service"]:
+            return jsonify({"error": "Invalid status"}), 400
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE rooms
+                SET status =? WHERE room_id =?""",
+                (new_status, room_id)
+            )
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Room status updated successfully",
+            "room_id": room_id,
+            "room_status": new_status
+        }), 200
+
+    
 
     return app
 
