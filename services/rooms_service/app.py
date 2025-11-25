@@ -157,6 +157,96 @@ def create_app():
             "room_id_deleted": room_id
         }), 200
 
+    """API to add a room equipment"""
+    @app.route("/rooms/<int:room_id>/equipment", methods=["POST"])
+    @jwt_required()
+    def add_equipment(room_id):
+        claims = get_jwt()
+        role = claims["role"]
+
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to add room equipment"}), 403
+        
+        data = request.get_json() or {}
+        equi_type = data.get("equipment")
+
+        if not equi_type:
+            return jsonify({"error": "Type of equipment item is required"}), 400
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            # Check if the room exists
+            cur.execute(
+                """
+                SELECT room_id FROM rooms WHERE room_id =?
+                """, (room_id,)
+            )
+            room_row = cur.fetchone()
+            if not room_row:
+                return jsonify({"error": "Room not found"}), 404
+            
+            # if the equipment type does not exist, add it
+            cur.execute(
+                """
+                SELECT equi_id FROM equipment WHERE type =?""",
+                (equi_type,)
+            )
+            equi_id_row = cur.fetchone()
+            if equi_id_row:
+                equi_id = equi_id_row["equi_id"]
+
+            else:
+                # add the new type 
+                cur.execute(
+                    """
+                INSERT INTO equipment (type) VALUES (?)""",
+                (equi_type,)
+                )
+                equi_id = cur.lastrowid
+            # Check if the room already has this equi type => increment quantity
+            cur.execute(
+                """
+            SELECT quantity FROM room_equipment WHERE room_id =? AND equi_id = ?""",
+            (room_id, equi_id)
+            )
+            quantity_row = cur.fetchone() 
+            if quantity_row:
+                quantity = quantity_row["quantity"]
+            else:
+                quantity = 0
+
+            if quantity > 0 :
+                # Increment 
+                cur.execute(
+                    """
+                    UPDATE room_equipment 
+                    SET quantity = ?
+                    WHERE room_id =? AND equi_id =?""",
+                    (quantity + 1, room_id, equi_id)
+                )
+            else:
+                # add the new item to the room
+                cur.execute(
+                    """
+                    INSERT INTO room_equipment (room_id, equi_id, quantity)
+                    VALUES (?, ?, 1)""",
+                    (room_id, equi_id)
+                )
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Equipment added successfully",
+            "room_id": room_id,
+            "added_equipment": equi_type
+        }), 201
+
     return app
 
 if __name__ == "__main__":
