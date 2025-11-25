@@ -90,6 +90,73 @@ def create_app():
             "equipment": equipment_list
         }), 200
 
+
+    """API to delete a room with bookings cancellation and reviews removal"""
+    @app.route("/rooms/<int:room_id>", methods=["DELETE"])
+    @jwt_required()
+    def delete_room(room_id):
+        claims = get_jwt()
+        role = claims["role"]
+
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to update room details"}), 403
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # Check if the room exists
+            cur.execute(
+                """
+                SELECT room_id FROM rooms WHERE room_id =?""", 
+                (room_id,)
+            )
+            room = cur.fetchone()
+            if not room:
+                return jsonify({"error": "Room not found"}), 404
+
+            # Cancel active and pending bookings
+            cur.execute(
+                """
+                UPDATE bookings 
+                SET status = 'cancelled'
+                WHERE room_id =? AND (status = 'pending' or status = 'confirmed') """,
+                (room_id, )
+            )
+
+            # Delete all reviews
+            cur.execute(
+                """
+            DELETE FROM reviews WHERE room_id =?""",
+            (room_id,)
+            )
+            
+            # Delete the room's equipment 
+            cur.execute(
+                """
+                DELETE FROM room_equipment WHERE room_id =?""",
+                (room_id,)
+            )
+
+            # Delete the room 
+            cur.execute(
+                """
+                DELETE FROM rooms WHERE room_id=?""",
+                (room_id,)
+            )
+
+            conn.commit()
+        
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Room deleted successfully",
+            "room_id_deleted": room_id
+        }), 200
+
     return app
 
 if __name__ == "__main__":
