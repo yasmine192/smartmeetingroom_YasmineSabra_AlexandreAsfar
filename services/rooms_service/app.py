@@ -371,6 +371,104 @@ def create_app():
             "room_id": room_id,
             "room_status": new_status
         }), 200
+    
+    """API to get all rooms with filters"""
+    @app.route("/rooms", methods =["GET"])
+    @jwt_required()
+    def get_rooms():
+        claims = get_jwt()
+        role = claims["role"]
+
+        authorized_Roles = ["admin", "facility_manager", "user", "auditor"]
+
+        if role not in authorized_Roles:
+            return jsonify({"error": "User not authorized to view rooms."})
+        
+        # Extract filters from request
+        capacity = request.args.get("capacity")
+        location = request.args.get("location")
+        equipment = request.args.get("equipment")
+        status = request.args.get("status")
+
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+
+            # all rooms
+            filt_request = """
+                SELECT r.room_id, r.name, r.capacity, r.location, r.status
+                FROM rooms r """
+            # list to keep track of filters
+            filters = []
+            # bool value to keep track of WHERE and AND 
+            bool_filter = False
+
+            # equipment filter 
+            if equipment:
+                filters.append(equipment.strip())
+                filt_request = filt_request + """
+                JOIN room_equipment re ON re.room_id = r.room_id 
+                JOIN equipment e ON e.equi_id = re.equi_id
+                """
+                filt_request += " WHERE e.type = ?"
+                bool_filter = True
+            
+            # capacity filter
+            if capacity:
+                filt_request += " AND r.capacity >=?" if bool_filter else " WHERE r.capacity >=?" 
+                filters.append(int(capacity))
+                bool_filter = True
+
+            # location filter 
+            if location:
+                filt_request += " AND r.location LIKE?" if bool_filter else  " WHERE r.location LIKE ?"
+                filters.append(f"%{location}%")
+                bool_filter = True
+            
+            # status filter 
+            if status:
+                filt_request += " AND r.status =?" if bool_filter else  " WHERE r.status = ?"
+                filters.append(status.strip())
+                bool_filter = True
+            
+            # Execute full query to return the rooms
+            cur.execute(filt_request, filters)
+            matched_rooms = cur.fetchall()
+
+            # Fetch the equipment list of each matched room
+            final_rooms_list = []
+            for room in matched_rooms:
+                cur.execute(
+                    """
+                    SELECT e.type, re.quantity
+                    FROM equipment e
+                    JOIN room_equipment re ON re.equi_id = e.equi_id
+                    WHERE re.room_id = ?
+                    """,
+                    (room["room_id"],)
+                )
+                equipment_list_rows = cur.fetchall()
+                equipment_list = []
+                for row in equipment_list_rows:
+                    equipment_list.append({
+                        "type":row["type"], "quantity":row["quantity"]
+                    })
+                final_rooms_list.append({
+
+                "room_id": room["room_id"],
+                "name": room["name"],
+                "capacity": room["capacity"],
+                "location": room["location"],
+                "status": room["status"],
+                "equipment": equipment_list
+                })
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({"rooms": final_rooms_list}), 200
 
     
 
