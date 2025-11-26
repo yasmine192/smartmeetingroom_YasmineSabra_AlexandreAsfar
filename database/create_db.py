@@ -67,8 +67,8 @@ def create_db_tables():
                           ),
                 user_id    INTEGER NOT NULL,
                 room_id    INTEGER NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (room_id) REFERENCES rooms(room_id)
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
             );
 
             -- REVIEWS
