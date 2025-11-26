@@ -28,7 +28,91 @@ def create_app():
     def health():
         return jsonify({"service": "rooms", "status": "ok"}), 200
     
-    
+    """API to create a new room"""
+    @app.route("/rooms", methods=["POST"]) 
+    @jwt_required()
+    def create_room():
+        claims = get_jwt()
+        role = claims.get("role")   # FIXED
+
+        # Validate authorization
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to create rooms"}), 403
+        
+        # Extract data
+        data = request.get_json() or {}
+        name = data.get("name")
+        capacity = data.get("capacity")
+        location = data.get("location")
+        equipment_list = data.get("equipment", []) or []
+        default_status = "available"
+
+        # Validate required fields
+        if not name or not capacity or not location:
+            return jsonify({"error": "Missing required fields: name, capacity, location"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        try:
+            # Insert room
+            cursor.execute(
+                """
+                INSERT INTO rooms (name, capacity, location, status)
+                VALUES (?, ?, ?, ?)
+                """,
+                (name, capacity, location, default_status)
+            )
+            conn.commit()
+            room_id = cursor.lastrowid
+
+            # Insert equipment if any
+            for equi in equipment_list:
+                equi_type = equi.strip()
+
+                # Check if equipment already exists
+                cursor.execute("SELECT equi_id FROM equipment WHERE type = ?", (equi_type,))
+                equi_row = cursor.fetchone()
+
+                if equi_row:
+                    equi_id = equi_row["equi_id"]
+                else:
+                    # Insert new equipment type (FIXED SQL)
+                    cursor.execute(
+                        "INSERT INTO equipment (type) VALUES (?)",
+                        (equi_type,)
+                    )
+                    conn.commit()
+                    equi_id = cursor.lastrowid
+
+                # Insert into room_equipment
+                cursor.execute(
+                    """
+                    INSERT INTO room_equipment (room_id, equi_id, quantity) 
+                    VALUES (?, ?, ?)
+                    """,
+                    (room_id, equi_id, 1)
+                )
+            
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Room created successfully",
+            "room": {
+                "room_id": room_id,
+                "name": name,
+                "capacity": capacity,
+                "location": location,
+                "status": default_status,
+                "equipment": equipment_list
+            }
+        }), 201
     
 
     """API to get room details by ID"""
@@ -94,7 +178,74 @@ def create_app():
         }), 200
 
 
-    
+    """API to edit room details: name, capacity, location"""
+    @app.route("/rooms/<int:room_id>", methods=["PUT"]) 
+    @jwt_required()
+    def update_room_details(room_id):
+        claims = get_jwt()
+        role = claims["role"]
+
+        if role not in ["admin", "facility_manager"]:
+            return jsonify({"error": "Not authorized to update room details"}), 403
+            
+        # Extract update fields
+        data = request.get_json() or {}
+        new_name = data.get("name")
+        new_capacity = data.get("capacity")
+        new_location = data.get("location")
+        
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            
+            # Fetch the current fields of the room to be updated 
+            cur.execute("""
+                SELECT name, capacity, location, status 
+                FROM rooms 
+                WHERE room_id = ?
+            """, (room_id,))
+            
+            room = cur.fetchone()
+
+            if not room:
+                return jsonify({"error": "Room not found"}), 404
+
+            if not any([new_name, new_capacity, new_location]):
+                return jsonify({"error": "No fields to update"}), 400
+
+
+            
+            # Determine the final fields of the room 
+            final_name = new_name.strip() if new_name else room["name"]
+            final_capacity = new_capacity if new_capacity else room["capacity"]
+            final_location = new_location.strip() if new_location else room["location"]
+
+            # Update room
+            cur.execute("""
+                UPDATE rooms
+                SET name=?, capacity=?, location=?
+                WHERE room_id = ?
+            """, (final_name, final_capacity, final_location, room_id))
+
+            conn.commit()
+
+        except sqlite3.Error as e:
+            return jsonify({"error": f"Database error: {e}"}), 500
+
+        finally:
+            conn.close()
+
+        return jsonify({
+            "message": "Room updated successfully",
+            "room": {
+                "room_id": room_id,
+                "name": final_name,
+                "capacity": final_capacity,
+                "location": final_location,
+                "status": room["status"]
+            }
+        }), 200
+
 
     """API to delete a room with bookings cancellation and reviews removal"""
     @app.route("/rooms/<int:room_id>", methods=["DELETE"])
