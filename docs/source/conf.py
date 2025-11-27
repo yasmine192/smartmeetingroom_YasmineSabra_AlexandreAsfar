@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 project = 'SmartMeetingRoom'
@@ -30,5 +30,5 @@ napoleon_include_init_with_doc = True
 napoleon_include_private_with_doc = False
 
 # -- Options for HTML output -------------------------------------------------
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']

@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rooms Service Documentation &mdash; SmartMeetingRoom 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Users Service Documentation" href="users_api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SmartMeetingRoom
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="users_api.html">Users Service Documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Rooms Service Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.add_equipment"><code class="docutils literal notranslate"><span class="pre">add_equipment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.create_room"><code class="docutils literal notranslate"><span class="pre">create_room()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.delete_equipment"><code class="docutils literal notranslate"><span class="pre">delete_equipment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.delete_room"><code class="docutils literal notranslate"><span class="pre">delete_room()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.get_room_by_id"><code class="docutils literal notranslate"><span class="pre">get_room_by_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.get_rooms"><code class="docutils literal notranslate"><span class="pre">get_rooms()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.health"><code class="docutils literal notranslate"><span class="pre">health()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.update_room_details"><code class="docutils literal notranslate"><span class="pre">update_room_details()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.rooms_service.app.update_room_status"><code class="docutils literal notranslate"><span class="pre">update_room_status()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SmartMeetingRoom</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Rooms Service Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/rooms_api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-services.rooms_service.app">
+<span id="rooms-service-documentation"></span><h1>Rooms Service Documentation<a class="headerlink" href="#module-services.rooms_service.app" title="Link to this heading"></a></h1>
+<dl>
+<dt><strong>Rooms Service - API Module</strong></dt><dd><p>This module implements the Rooms microservice responsible for managing rooms,
+their equipment, availability status, and search/filter operations. All
+endpoints are organized under the <code class="docutils literal notranslate"><span class="pre">rooms_bp</span></code> Flask Blueprint.</p>
+</dd>
+<dt><strong>Main Features</strong></dt><dd><ul class="simple">
+<li><p>Create, update, view, and delete rooms.</p></li>
+<li><p>Manage room equipment (add, remove, increment, decrement).</p></li>
+<li><p>Update room operational status (available / out_of_service).</p></li>
+<li><p>Retrieve rooms with flexible filtering (capacity, location, status,</p></li>
+</ul>
+<p>equipment).
+- Health check endpoint.</p>
+</dd>
+<dt><strong>Structure</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rooms_bp</span></code>: Flask Blueprint containing all Rooms API routes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_db_connection()</span></code>: Imported utility for SQLite connections.</p></li>
+<li><dl class="simple">
+<dt>Routes include:</dt><dd><ul>
+<li><p>POST <code class="docutils literal notranslate"><span class="pre">/rooms</span></code> - Create a room.</p></li>
+<li><p>GET <code class="docutils literal notranslate"><span class="pre">/rooms</span></code> - Retrieve rooms (with filters).</p></li>
+<li><p>GET <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;id&gt;</span></code> - Get room details.</p></li>
+<li><p>PUT <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;id&gt;</span></code> - Update room information.</p></li>
+<li><p>DELETE <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;id&gt;</span></code> - Delete a room and related records.</p></li>
+<li><p>POST/DELETE equipment routes.</p></li>
+<li><p>PUT room status route.</p></li>
+<li><p>GET <code class="docutils literal notranslate"><span class="pre">/rooms/health</span></code> - Service health check.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Database Tables Used</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rooms</span></code> - Main room definitions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">equipment</span></code> - Global equipment definitions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">room_equipment</span></code> - Room-to-equipment mapping table.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bookings</span></code> - Active bookings cancelled when a room is deleted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reviews</span></code> - Reviews removed when a room is deleted.</p></li>
+</ul>
+</dd>
+<dt><strong>Authentication &amp; Authorization</strong></dt><dd><p>All endpoints require JWT-based authentication. Only privileged roles
+(<code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code>) may create, modify, or delete rooms or
+equipment. Other roles (<code class="docutils literal notranslate"><span class="pre">user</span></code>, <code class="docutils literal notranslate"><span class="pre">auditor</span></code>) may retrieve room details.</p>
+<p>This docstring is used by Sphinx to generate top-level HTML documentation for
+the entire Rooms microservice.</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.add_equipment">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">add_equipment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#add_equipment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.add_equipment" title="Link to this definition"></a></dt>
+<dd><p><strong>Add or increment an equipment item for a specific room.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;/equipment</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+<p>This endpoint allows adding an equipment item to a room by an authorized user, while
+requests from unauthorized users are rejected. If the equipment type does not previously
+exist in the global <code class="docutils literal notranslate"><span class="pre">equipment</span></code> table, it is automatically created. If the room already contains this equipment type,
+its quantity is incremented; otherwise, a new association entry is added in
+<code class="docutils literal notranslate"><span class="pre">room_equipment</span></code>.</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>equipment</strong> (<em>str</em>) - The type/name of the equipment item to add.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Verifies requester authorization.</p></li>
+<li><p>Ensures that the intended room exist in the rooms table.</p></li>
+<li><p>Posts the equipment type if it does not exist in the equipments table.</p></li>
+<li><dl class="simple">
+<dt>Checks whether the room already has this equipment:</dt><dd><ul>
+<li><p>If it does, increments its quantity.</p></li>
+<li><p>If it does not, create the equipment type and add it to the room with quanity = 1.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - Equipment added or quantity incremented.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing equipment field.</p></li>
+<li><p><strong>403 Forbidden</strong> - Unauthorized requester.</p></li>
+<li><p><strong>404 Not Found</strong> - Room does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Whiteboard&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Equipment added successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;added_equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Computer&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.create_room">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">create_room</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#create_room"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.create_room" title="Link to this definition"></a></dt>
+<dd><p>Create a new room (admin and facility manager only).</p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+<p>This endpoint allows users with user roles <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code>
+to create a new room record in <code class="docutils literal notranslate"><span class="pre">rooms</span></code> table of the database. Each room creation
+request should include the room’s name, capacity, location, and an optional equipment list.
+Each equipment item will be linked to an existing equipment type or added as a new one.
+All rooms are marked by default as available upon creation.</p>
+<dl>
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) - Room name (required).</p></li>
+<li><p><strong>capacity</strong> (<em>int</em>) - Capacity (required).</p></li>
+<li><p><strong>location</strong> (<em>str</em>) - Room location (required).</p></li>
+<li><p><strong>equipment</strong> (<em>list[str]</em>) - List of equipment (optional).</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Verifies that the requester has either <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code> roles.</p></li>
+<li><p>Ensures that the required fields (<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">capacity</span></code>, and <code class="docutils literal notranslate"><span class="pre">location</span></code>) are provided in the request body.</p></li>
+<li><p>Inserts the room into the <code class="docutils literal notranslate"><span class="pre">rooms</span></code> table with the default status <code class="docutils literal notranslate"><span class="pre">available</span></code>.</p></li>
+<li><dl class="simple">
+<dt>For each provided equipment item:</dt><dd><ul>
+<li><p>Checks whether this type of equipment exists in the <code class="docutils literal notranslate"><span class="pre">equipment</span></code> table.</p></li>
+<li><p>Inserts the new equipment type if it does not exist.</p></li>
+<li><p>Creates a mapping in <code class="docutils literal notranslate"><span class="pre">room_equipment</span></code> with a default quantity of 1.</p></li>
+<li><p>Returns the created room details.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - Room successfully created.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing required fields.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester is not authorized.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+<dt><strong>Example Request:</strong></dt><dd><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Meeting room&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bechtel 300&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Projector&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Whiteboard&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Microphone&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>Example Successful Response:</strong></dt><dd><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Room created successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Meeting Room&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bechtel 300&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;available&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Projector&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Whiteboard&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Microphone&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.delete_equipment">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">delete_equipment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equi_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#delete_equipment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.delete_equipment" title="Link to this definition"></a></dt>
+<dd><p><strong>Remove or decrement an equipment item from a room.</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;/equipment/&lt;equi_id&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">DELETE</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+</div></blockquote>
+<p>This endpoint removes equipment from a room.
+If the equipment has a quantity greater than 1, the quantity is decremented.
+If the quantity is exactly 1, the equipment mapping is removed from
+<code class="docutils literal notranslate"><span class="pre">room_equipment</span></code> entirely.
+The equipment type itself remains in the  <code class="docutils literal notranslate"><span class="pre">equipment</span></code> table.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Verifies requester authorization.</p></li>
+<li><p>Ensures the room exists.</p></li>
+<li><p>Ensures the equipment type exists.</p></li>
+<li><p>Ensures the equipment is actually assigned to the room.</p></li>
+<li><p>Decrements quantity or deletes the mapping entirely.</p></li>
+<li><p>Returns the equipment type removed.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - Equipment successfully removed or quantity decremented.</p></li>
+<li><p><strong>403 Forbidden</strong> - Unauthorized requester.</p></li>
+<li><p><strong>404 Not Found</strong> - Room or equipment not found, or equipment not assigned to the room.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database failure.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Equipment removed successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;removed_equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Table&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.delete_room">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">delete_room</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#delete_room"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.delete_room" title="Link to this definition"></a></dt>
+<dd><p><strong>Delete an existing room and related data.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">DELETE</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+<p>This endpoint cancels the intended room’s pending and confirmed booking,
+deletes related booking reviews, and removes all assigned equipments. Finally,
+it safely deletes the room record room from the rooms table in the database.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Verifies requester role (admin or facility manager).</p></li>
+<li><p>Checks whether the room exists in the database.</p></li>
+<li><p>Cancels all room bookings with status <code class="docutils literal notranslate"><span class="pre">pending</span></code> or <code class="docutils literal notranslate"><span class="pre">confirmed</span></code>.</p></li>
+<li><p>Deletes all reviews associated with the room.</p></li>
+<li><p>Deletes all equipment mappings from <code class="docutils literal notranslate"><span class="pre">room_equipment</span></code>.</p></li>
+<li><p>Removes the room record from <code class="docutils literal notranslate"><span class="pre">rooms</span></code> table.</p></li>
+<li><p>Returns a confirmation message with the deleted room ID.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Room deleted successfully.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester is not authorized.</p></li>
+<li><p><strong>404 Not Found</strong> - Room does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Room deleted successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room_id_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.get_room_by_id">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">get_room_by_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#get_room_by_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.get_room_by_id" title="Link to this definition"></a></dt>
+<dd><p><strong>Retrieve full details of a specific room by ID</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code>, <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code>, <code class="docutils literal notranslate"><span class="pre">auditor</span></code>, or <code class="docutils literal notranslate"><span class="pre">user</span></code></p></li>
+</ul>
+<p>This endpoint return the full details of a specific room upon request from
+an authorized user. The details include the room’s name, capacity, location,
+list of equipment along with the available quantity of each, and status
+(available, booked, out of service).</p>
+<dl>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the user’s role form the claims of the JWT toke.</p></li>
+<li><p>Ensures that the user is authorized to request room details.</p></li>
+<li><p>Fetches the room details by ID from the rooms table in the database.</p></li>
+<li><p>Selects the IDs of the equipments assigned to the room from the</p></li>
+</ul>
+<p>joined room_equipment table.
+- Tracks the quantity of each assigned equipment.
+- Returns a room object with its full details and current status.</p>
+</dd>
+<dt><strong>Response Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>room_id</strong> (<em>int</em>)</p></li>
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>capacity</strong> (<em>int</em>)</p></li>
+<li><p><strong>location</strong> (<em>str</em>)</p></li>
+<li><p><strong>status</strong> (<em>str</em>) - <code class="docutils literal notranslate"><span class="pre">available</span></code>, <code class="docutils literal notranslate"><span class="pre">booked</span></code>, or <code class="docutils literal notranslate"><span class="pre">out_of_service</span></code></p></li>
+<li><dl class="simple">
+<dt><strong>equipment</strong> (<em>list</em>) - A list of objects:</dt><dd><ul>
+<li><p><strong>type</strong> (<em>str</em>) - Equipment type</p></li>
+<li><p><strong>quantity</strong> (<em>int</em>) - Available quantity</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Room details returned successfully.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester is not authorized.</p></li>
+<li><p><strong>404 Not Found</strong> - Room does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+<dt><strong>Example Successful Response:</strong></dt><dd><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Exam Room, C&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SRB building, floor 3&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;booked&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Computers&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Whiteboard&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.get_rooms">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">get_rooms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#get_rooms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.get_rooms" title="Link to this definition"></a></dt>
+<dd><p><strong>Retrieve a list of rooms with optional filtering.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code>, <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code>, <code class="docutils literal notranslate"><span class="pre">user</span></code>, <code class="docutils literal notranslate"><span class="pre">auditor</span></code></p></li>
+</ul>
+<p>This endpoints allows users to view all available removes.
+They can optionally filter out rooms by availability, by capacity,
+by location, and by eqipment item available in their equipment list.</p>
+<dl class="simple">
+<dt><strong>Query Parameters:</strong></dt><dd><ul class="simple">
+<li><p><strong>capacity</strong> (<em>int</em>, optional) - Minimum capacity of the room.</p></li>
+<li><p><strong>location</strong> (<em>str</em>, optional) - Partial match filter using SQL <code class="docutils literal notranslate"><span class="pre">LIKE</span></code>.</p></li>
+<li><p><strong>equipment</strong> (<em>str</em>, optional) - Returns only rooms containing the specified equipment type.</p></li>
+<li><p><strong>status</strong> (<em>str</em>, optional) - Filter by room status (<code class="docutils literal notranslate"><span class="pre">available</span></code>, <code class="docutils literal notranslate"><span class="pre">booked</span></code>, <code class="docutils literal notranslate"><span class="pre">out_of_service</span></code>).</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Validates user authorization.</p></li>
+<li><p>Dynamically builds SQL query based on provided filters.</p></li>
+<li><p>Supports combined filtering (e.g., capacity + location + equipment).</p></li>
+<li><p>Returns each room along with its equipment list and quantities.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Matching rooms returned successfully.</p></li>
+<li><p><strong>403 Forbidden</strong> - User not authorized to view rooms.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request (with filters):</strong></p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">http://localhost:5000/rooms?capacity=20&amp;location=Hall&amp;equipment=Projector</span></code></p>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;rooms&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Main Conference Room&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;East Hall&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;available&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Projector&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Whiteboard&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;quantity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">}</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.health">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">health</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#health"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.health" title="Link to this definition"></a></dt>
+<dd><p>Health check endpoint for the Rooms service.</p>
+<p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/health</span></code>
+<strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code>
+<strong>Authentication:</strong> None</p>
+<p>This endpoint is used to verify that the Rooms service is running and
+responding correctly.
+It does not perform any database checks—only returns a simple JSON status
+message confirming service availability.</p>
+<p><strong>Responses:</strong>
+- <strong>200 OK</strong> – Rooms service is responsive.</p>
+<p><strong>Example Successful Response:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;service&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rooms&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.update_room_details">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">update_room_details</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#update_room_details"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.update_room_details" title="Link to this definition"></a></dt>
+<dd><p>Update room details (name, capacity, location)</p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">PUT</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+<p>This endpoints allows authorized users (<code class="docutils literal notranslate"><span class="pre">admin</span></code> and <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code>)
+to update the name, the capacity, and the location of an existing room.
+It verifies that at least one field is provided in the request body and return
+the room details with the new values for the updated fields and the old values for
+the other fields. Status and equipment update requests are ignored.</p>
+<dl>
+<dt><strong>Updatable Fields (optional):</strong></dt><dd><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) -  New name.</p></li>
+<li><p><strong>capacity</strong> (<em>int</em>) - New capacity.</p></li>
+<li><p><strong>location</strong> (<em>str</em>) - New location.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the user role from the claims of the JWT token.</p></li>
+<li><p>Ensures that the user is authorized to update room details.</p></li>
+<li><p>Rejects update request from non authorized users.</p></li>
+<li><p>Ensures that at least one update field is provided in the request body.</p></li>
+<li><p>Extracts the new field values from the request body.</p></li>
+<li><p>Fetch the current room details from the databse, if the room exists.</p></li>
+<li><p>Decides on the final room details by assigning the new values to the requested fields and the old values for the fields not included in the request.</p></li>
+<li><p>Updates the room details in the database using the final values.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Room updated successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - No fields provided to update.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester is not allowed to update rooms.</p></li>
+<li><p><strong>404 Not Found</strong> - Room does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database update failed.</p></li>
+</ul>
+</dd>
+<dt><strong>Example Request:</strong></dt><dd><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Conference Room&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bechtel, floor 3&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>Example Successful Response:</strong></dt><dd><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Room updated successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Conference Room&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;capacity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;location&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bechtel, floor 3&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;out_of_service!&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.rooms_service.app.update_room_status">
+<span class="sig-prename descclassname"><span class="pre">services.rooms_service.app.</span></span><span class="sig-name descname"><span class="pre">update_room_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">room_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/rooms_service/app.html#update_room_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.rooms_service.app.update_room_status" title="Link to this definition"></a></dt>
+<dd><p><strong>Update the availability status of a room.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/rooms/&lt;room_id&gt;/status</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">PUT</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">facility_manager</span></code></p></li>
+</ul>
+<p>This endpoint allows the facility manager to marks a room out of service to temporarly
+prevent booking and mark it back as available when maintenance/safety issues resolution ..
+are complete. As a backup plan for when the facility manager is unavailable,
+the admin is granted access to this endpoint as well.</p>
+<dl class="simple">
+<dt><strong>Status Values:</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">available</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out_of_service</span></code></p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extract the user role from the JWT token.</p></li>
+<li><p>Ensure that only facility managers and admin are allowed access.</p></li>
+<li><p>Validate a new status is provided and ensure it is one of (available, out_of_service).</p></li>
+<li><p>Extract new status from the JSON request body.</p></li>
+<li><p>Update the corresponsing room status to the new one.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Status updated successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing or invalid status.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester not authorized.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;out_of_service&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Room status updated successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;room_status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;out_of_service&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="users_api.html" class="btn btn-neutral float-left" title="Users Service Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasmine Sabra.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

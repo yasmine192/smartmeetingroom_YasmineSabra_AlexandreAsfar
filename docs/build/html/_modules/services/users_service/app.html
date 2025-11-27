@@ -1,0 +1,1589 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>services.users_service.app &mdash; SmartMeetingRoom 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SmartMeetingRoom
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../users_api.html">Users Service Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../rooms_api.html">Rooms Service Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SmartMeetingRoom</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">services.users_service.app</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for services.users_service.app</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">**Users Service - API Module**</span>
+<span class="sd">    This module implements the Users microservice of the system. It manages user</span>
+<span class="sd">    registration, authentication, authorization, role assignment, profile</span>
+<span class="sd">    management, and administrative actions. The endpoints are exposed through a</span>
+<span class="sd">    Flask Blueprint (``users_bp``) and integrated into the main application via</span>
+<span class="sd">    ``create_app()``.</span>
+
+<span class="sd">**Main Features**</span>
+<span class="sd">    - User registration with hashed passwords.</span>
+<span class="sd">    - JWT-based authentication and token generation.</span>
+<span class="sd">    - Role-based access control (Admin, User, Auditor, Facility Manager,</span>
+<span class="sd">Moderator, Service Account).</span>
+<span class="sd">    - Profile viewing, updating, and deletion.</span>
+<span class="sd">    - Administrative operations:</span>
+<span class="sd">        - Initialize system roles.</span>
+<span class="sd">        - Create the first admin account.</span>
+<span class="sd">        - Assign or change roles for users.</span>
+<span class="sd">        - Reset user passwords.</span>
+<span class="sd">        - Delete user accounts.</span>
+<span class="sd">    - Internal health check endpoint.</span>
+
+<span class="sd">**Structure**</span>
+<span class="sd">    - ``users_bp``: Flask Blueprint containing all Users API routes.</span>
+<span class="sd">    - ``get_db_connection()``: Utility to create SQLite database connections with</span>
+<span class="sd">    foreign key enforcement enabled.</span>
+<span class="sd">    - ``create_app()``: Application factory configuring JWT and registering the</span>
+<span class="sd">    users blueprint.</span>
+
+<span class="sd">**Database Tables Used**</span>
+<span class="sd">    - ``users`` - Stores user accounts and hashed passwords.</span>
+<span class="sd">    - ``roles`` - Defines available system roles.</span>
+<span class="sd">    - ``bookings`` - Used when deleting users to cancel active bookings.</span>
+<span class="sd">    - ``reviews`` - Used when deleting users to remove authored reviews.</span>
+
+<span class="sd">**Authentication**</span>
+<span class="sd">    Most endpoints require a valid JWT access token. Required roles vary per</span>
+<span class="sd">    operation (e.g., Admin-only, Admin/Auditor, or Any Authenticated User).</span>
+
+<span class="sd">    This module is consumed by Sphinx to generate HTML documentation for all Users</span>
+<span class="sd">    service endpoints.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_password_hash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_password_hash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTManager</span><span class="p">,</span> <span class="n">create_access_token</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">jwt_required</span><span class="p">,</span> <span class="n">get_jwt_identity</span><span class="p">,</span> <span class="n">get_jwt</span>
+
+
+<span class="c1"># Connecting to the database </span>
+<span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span>
+<span class="n">DB_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="s2">&quot;database&quot;</span><span class="p">,</span> <span class="s2">&quot;project.db&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_db_connection</span><span class="p">():</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DB_PATH</span><span class="p">)</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>   <span class="c1"># To access columns by name</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;PRAGMA foreign_keys = ON;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conn</span> <span class="c1"># connection object to run queries</span>
+
+<span class="n">users_bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;users_bp&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1">### API to check database connection</span>
+<div class="viewcode-block" id="health">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.health">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/health&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Service health check endpoint.**</span>
+
+<span class="sd">    - **URL:** ``/health``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** None</span>
+
+<span class="sd">    This endpoint is used to verify that the Users Service is running correctly and</span>
+<span class="sd">    that the database connection is functioning. It performs a simple connectivity</span>
+<span class="sd">    test by opening and closing a database connection.  </span>
+
+<span class="sd">    A successful response indicates that both the service and the database are</span>
+<span class="sd">    operational.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Attempts to establish a connection to the SQLite database.</span>
+<span class="sd">        - Closes the connection if successful.</span>
+<span class="sd">        - Returns a JSON object with service and database status.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Service is running and database connection succeeded.</span>
+<span class="sd">        - **500 Internal Server Error** - Database connection failed.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;service&quot;: &quot;users&quot;,</span>
+<span class="sd">                &quot;db&quot;: &quot;connected&quot;,</span>
+<span class="sd">                &quot;status&quot;: &quot;ok&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Error Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;service&quot;: &quot;users&quot;,</span>
+<span class="sd">                &quot;db_error&quot;: &quot;unable to open database file&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="s2">&quot;connected&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">}),</span> <span class="mi">200</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;db_error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}),</span> <span class="mi">500</span></div>
+
+        
+<span class="c1">### API to post user roles to the roles table in database</span>
+<div class="viewcode-block" id="init_roles">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.init_roles">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/roles/init&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_roles</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize default system roles.</span>
+
+<span class="sd">    - **URL:** ``/roles/init``  </span>
+<span class="sd">    - **Method:** ``POST``  </span>
+<span class="sd">    - **Authentication:** None</span>
+
+<span class="sd">    This endpoint inserts the predefined system roles into the ``roles`` table.</span>
+<span class="sd">    If a role already exists, it is ignored to prevent duplication.  </span>
+<span class="sd">    This endpoint is typically called once during system setup or deployment.</span>
+
+<span class="sd">    **Roles Created:**</span>
+<span class="sd">        - **admin** - System administrator  </span>
+<span class="sd">        - **user** - Regular user  </span>
+<span class="sd">        - **facility_manager** - Manages rooms and equipment  </span>
+<span class="sd">        - **moderator** - Handles room reviews  </span>
+<span class="sd">        - **auditor** - Read-only access for audits/logs  </span>
+<span class="sd">        - **service_account** - Restricted non-human service-level account  </span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Opens a database connection.</span>
+<span class="sd">        - Iterates through the predefined roles list.</span>
+<span class="sd">        - Uses ``INSERT OR IGNORE`` to avoid duplicate role creation.</span>
+<span class="sd">        - Commits changes and closes the database connection.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - Roles successfully initialized (or already existed).</span>
+<span class="sd">        - **500 Internal Server Error** - Database insert operation failed.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Roles initialized (or already existed).&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">roles</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;System administrator&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;Regular user&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;facility_manager&quot;</span><span class="p">,</span> <span class="s2">&quot;Manages rooms and equipment lists, reads bookings&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;moderator&quot;</span><span class="p">,</span> <span class="s2">&quot;Moderates reviews only&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;auditor&quot;</span><span class="p">,</span> <span class="s2">&quot;Read-only access to data and logs&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;service_account&quot;</span><span class="p">,</span> <span class="s2">&quot;Non-human account for inter-service calls&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">role</span><span class="p">,</span> <span class="n">description</span> <span class="ow">in</span> <span class="n">roles</span><span class="p">:</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="c1"># Ignore if the roles already exist to avoid crashing </span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                    INSERT OR IGNORE INTO roles (role, description)</span>
+<span class="sd">                    VALUES (?, ?) </span>
+<span class="sd">                    &quot;&quot;&quot;</span><span class="p">,</span> 
+                    <span class="p">(</span><span class="n">role</span><span class="p">,</span> <span class="n">description</span><span class="p">),</span>
+                <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span> <span class="c1"># saves the changes to db</span>
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Roles initialized (or already existed).&quot;</span><span class="p">}),</span> <span class="mi">201</span> <span class="c1"># created </span></div>
+
+    
+<span class="c1">### API to initialize the admim&#39;s profile to the database</span>
+<div class="viewcode-block" id="init_admin">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.init_admin">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/admin/init&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_admin</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize the system&#39;s primary administrator account.</span>
+
+<span class="sd">    - **URL:** ``/admin/init``  </span>
+<span class="sd">    - **Method:** ``POST``  </span>
+<span class="sd">    - **Authentication:** None</span>
+
+<span class="sd">    This endpoint is used to create the first administrator account in the system.</span>
+<span class="sd">    It should be executed only once, typically during system deployment.  </span>
+<span class="sd">    If an admin already exists, the request is rejected to prevent multiple initial</span>
+<span class="sd">    admin accounts from being created.</span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **username** (*str*) – Admin&#39;s username (must be unique).  </span>
+<span class="sd">        - **email** (*str*) – Admin&#39;s email address (must be unique).  </span>
+<span class="sd">        - **password** (*str*) – Raw password (stored securely as a hash).  </span>
+<span class="sd">        - **name** (*str*) – Full name of the administrator.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Validates the presence of all required fields.</span>
+<span class="sd">        - Checks whether an admin account already exists.</span>
+<span class="sd">        - Retrieves the role ID for the ``admin`` role.</span>
+<span class="sd">        - Ensures the username and email are unique across users.</span>
+<span class="sd">        - Hashes the password using ``generate_password_hash``.</span>
+<span class="sd">        - Inserts the new admin user into the database.</span>
+<span class="sd">        - Returns the created admin&#39;s profile information.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - Admin successfully initialized.</span>
+<span class="sd">        - **400 Bad Request** - Missing required field(s).</span>
+<span class="sd">        - **403 Forbidden** - An admin already exists.</span>
+<span class="sd">        - **409 Conflict** - Username or email already exists.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error or missing admin role.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;username&quot;: &quot;sysadmin&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;admin@example.com&quot;,</span>
+<span class="sd">                &quot;password&quot;: &quot;securePass123&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;System Administrator&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Admin user created successfully&quot;,</span>
+<span class="sd">                &quot;admin&quot;: {</span>
+<span class="sd">                    &quot;user_id&quot;: 1,</span>
+<span class="sd">                    &quot;username&quot;: &quot;sysadmin&quot;,</span>
+<span class="sd">                    &quot;email&quot;: &quot;admin@example.com&quot;,</span>
+<span class="sd">                    &quot;name&quot;: &quot;System Administrator&quot;,</span>
+<span class="sd">                    &quot;role&quot;: &quot;admin&quot;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">required</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">field</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Missing field: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+
+    <span class="n">username</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="s2">&quot;admin&quot;</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Check if any admin already exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT 1 FROM users u</span>
+<span class="s2">            JOIN roles r ON u.role_id = r.role_id</span>
+<span class="s2">            WHERE r.role = &#39;admin&#39;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Admin already initialized&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+
+        <span class="c1"># Get the admin role ID</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT role_id FROM roles WHERE role = &#39;admin&#39;&quot;</span><span class="p">)</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Admin role missing from database&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+        <span class="n">role_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;role_id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Check if username/email is already taken</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT 1 FROM users WHERE username=? OR email=?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">email</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Username or email already exists&quot;</span><span class="p">}),</span> <span class="mi">409</span>
+
+        <span class="c1"># Hash password</span>
+        <span class="n">password_hash</span> <span class="o">=</span> <span class="n">generate_password_hash</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+        <span class="c1"># Insert admin</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            INSERT INTO users (username, email, password_hash, name, role_id)</span>
+<span class="s2">            VALUES (?, ?, ?, ?, ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">password_hash</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">role_id</span><span class="p">))</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">admin_id</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">lastrowid</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Admin user created successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;admin&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">admin_id</span><span class="p">,</span>
+            <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span>
+            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">201</span></div>
+
+
+
+<span class="c1">### API to post a new user to the users table in database</span>
+<div class="viewcode-block" id="register_user">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.register_user">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/register&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_user</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    **Endpoint to register a new user**</span>
+
+<span class="sd">    - **URL:** ``/users/register`` </span>
+<span class="sd">    - **Method:** ``POST`` </span>
+<span class="sd">    - **Authentication:** None</span>
+<span class="sd">    </span>
+<span class="sd">    This endpoint validates required fields (username, name, email, password). It then verifies the uniqueness of </span>
+<span class="sd">    username and email, hashes the password, and assigns a default regular user role. </span>
+<span class="sd">    It finally inserts the user&#39;s details under the users table in the database.    </span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **username** (*str*) - Unique username.</span>
+<span class="sd">        - **email** (*str*) - Unique email address.</span>
+<span class="sd">        - **password** (*str*) - Raw password (stored as a hash).</span>
+<span class="sd">        - **name** (*str*) - User&#39;s full name.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Validates required fields.</span>
+<span class="sd">        - Strips whitespace from textual fields  </span>
+<span class="sd">        - Verifies uniqueness of ``username`` and ``email``</span>
+<span class="sd">        - Hashes password using ``werkzeug.security``</span>
+<span class="sd">        - Assigns a default role: ``user``</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - User successfully registered.</span>
+<span class="sd">        - **400 Bad Request** - One or more required fields are missing.</span>
+<span class="sd">        - **409 Conflict** -  Username or email already exists.</span>
+<span class="sd">        - **500 Internal Server Error** -  Database operation failed.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;username&quot;: &quot;ayasabra&quot;,</span>
+<span class="sd">            &quot;email&quot;: &quot;ayasabra@users.com&quot;,</span>
+<span class="sd">            &quot;password&quot;: &quot;aya123&quot;,</span>
+<span class="sd">            &quot;name&quot;: &quot;Aya Sabra&quot;</span>
+<span class="sd">        }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;message&quot;: &quot;User registered successfully&quot;,</span>
+<span class="sd">            &quot;user&quot;: {</span>
+<span class="sd">                &quot;user_id&quot;: 4,</span>
+<span class="sd">                &quot;username&quot;: &quot;ayasabra&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;ayasabra@users.com&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Aya Sabra&quot;,</span>
+<span class="sd">                &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Extract the user info from the JSON object sent by postman/frontend </span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span> <span class="c1"># if nothing sent</span>
+
+    <span class="c1"># Validate required fields</span>
+    <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span>
+    <span class="n">missing_fields</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">required_fields</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">field</span><span class="p">]:</span>
+            <span class="n">missing_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">missing_fields</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span> <span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Missing fields: </span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing_fields</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">400</span> <span class="c1"># bad request</span>
+
+    <span class="c1"># Extract the input </span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">forced_role</span> <span class="o">=</span> <span class="s2">&quot;user&quot;</span> <span class="c1">#regular</span>
+
+    <span class="c1"># Establish database connection</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Find the role ID of the role in roles table</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT role_id FROM roles WHERE role = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">forced_role</span><span class="p">,),)</span>
+        <span class="n">role_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> <span class="c1"># return a row object of role_id</span>
+
+        <span class="k">if</span> <span class="n">role_row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid role&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+        
+        <span class="n">role_id</span> <span class="o">=</span> <span class="n">role_row</span><span class="p">[</span><span class="s2">&quot;role_id&quot;</span><span class="p">]</span> <span class="c1"># extract the role_id</span>
+
+        <span class="c1"># Verify uniqueness of username and email</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT 1 FROM users WHERE username =? or email = ?&quot;&quot;&quot;</span><span class="p">,</span> 
+            <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">email</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Username or email already exists&quot;</span><span class="p">}),</span> <span class="mi">409</span> <span class="c1"># conflict</span>
+        
+        <span class="c1"># Hash the password </span>
+        <span class="n">password_hash</span> <span class="o">=</span> <span class="n">generate_password_hash</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+        <span class="c1"># Insert the user to users table in the database</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            INSERT INTO users (username, email, password_hash, name, role_id)</span>
+<span class="sd">            VALUES (?, ?, ?, ?, ?)&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">password_hash</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">role_id</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">user_id</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">lastrowid</span> <span class="c1"># user_id is the primary key</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="c1"># Return JSON object of user added</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span> <span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;User registered successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+            <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span>
+            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">forced_role</span>
+
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">201</span> <span class="c1"># created</span></div>
+
+
+<span class="c1">### API to login an existing user</span>
+<div class="viewcode-block" id="login_user">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.login_user">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/login&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">login_user</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Endpoint to authenticate an existing user and return a JWT access token**</span>
+
+<span class="sd">    - **URL:** ``/users/login`` </span>
+<span class="sd">    - **Method:** ``POST`` </span>
+<span class="sd">    - **Authentication:** None</span>
+<span class="sd">    </span>
+<span class="sd">    This endpoint validates the input of all required fields (username and password), verifies the existence of user</span>
+<span class="sd">    by username and validates the password. It then fetches the user role to deny service account logins, </span>
+<span class="sd">    and finally issues a JWT access token containing the user&#39;s ID, and claims (username and role).</span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **username** (*str*) - User&#39;s unique username.</span>
+<span class="sd">        - **password** (*str*) - User&#39;s raw password.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Validates the input of ``username`` and ``password``.</span>
+<span class="sd">        - Fetches the user by username to verify existence.</span>
+<span class="sd">        - Validate the password using ``werkzeug.security.check_password_hash``.</span>
+<span class="sd">        - Fetches the user&#39;s role from the database to determine authorities.</span>
+<span class="sd">        - Rejects ``service_account`` login requests.</span>
+<span class="sd">        - Generates a JWT token including:</span>
+<span class="sd">            - ``user_id`` (JWT identity)</span>
+<span class="sd">            - ``username`` (claim)</span>
+<span class="sd">            - ``role`` (claim)</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK**- Login successful; JWT token returned.</span>
+<span class="sd">        - **400 Bad Request** -  Username or password fields are missing.</span>
+<span class="sd">        - **401 Unauthorized** - Invalid username or password.</span>
+<span class="sd">        - **403 Forbidden**- ``service_account`` role is not allowed to log in.</span>
+<span class="sd">        - **500 Internal Server Error** -  Database operation failed.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;username&quot;: &quot;ayasabra&quot;,</span>
+<span class="sd">            &quot;password&quot;: &quot;aya123&quot;</span>
+<span class="sd">        }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;message&quot;: &quot;Login successful&quot;,</span>
+<span class="sd">            &quot;token&quot;: &quot;eyJhb...&quot;,</span>
+<span class="sd">            &quot;user&quot;: {</span>
+<span class="sd">                &quot;user_id&quot;: 4,</span>
+<span class="sd">                &quot;username&quot;: &quot;ayasabra&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;ayasabra@users.com&quot;,</span>
+<span class="sd">                &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="c1"># Validate the input fields</span>
+    <span class="k">if</span> <span class="s2">&quot;username&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">or</span> <span class="s2">&quot;password&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Username and password are required to login.&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="c1"># Extract data</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Get the user by username, if exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT user_id, username, email, password_hash, role_id</span>
+<span class="sd">            FROM users WHERE username = ?&quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">username</span><span class="p">,),)</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+        <span class="c1"># Check if user does not exist using username</span>
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid username or password&quot;</span><span class="p">}),</span> <span class="mi">401</span>
+        
+        <span class="c1"># Check if the password is correct </span>
+        <span class="n">password_match</span> <span class="o">=</span> <span class="n">check_password_hash</span><span class="p">(</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;password_hash&quot;</span><span class="p">],</span> <span class="n">password</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">password_match</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid username or password&quot;</span><span class="p">}),</span> <span class="mi">401</span>
+        
+        <span class="c1"># If user exists, username and password are correct, fetch the role to authorize</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT role FROM roles WHERE role_id = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;role_id&quot;</span><span class="p">],))</span> 
+        <span class="n">role_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> <span class="c1"># returns a row with a role</span>
+        <span class="n">role</span> <span class="o">=</span> <span class="n">role_row</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">role_row</span> <span class="k">else</span> <span class="s2">&quot;unknown&quot;</span>
+
+        <span class="c1"># Block service_account login</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;service_account&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;This account type cannot log in.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+
+        <span class="c1"># Create JWT token with the user_id, username, and role (for authorization)</span>
+        <span class="n">access_token</span> <span class="o">=</span> <span class="n">create_access_token</span><span class="p">(</span>
+            <span class="n">identity</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]),</span>
+            <span class="n">additional_claims</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">role</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="c1"># Json response</span>
+    <span class="k">return</span> <span class="n">jsonify</span> <span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Login successful&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">access_token</span><span class="p">,</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">role</span>
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+<span class="c1">### API to allow all user types to read their own profile.</span>
+<div class="viewcode-block" id="get_my_profile">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.get_my_profile">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/me&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_my_profile</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve the authenticated user&#39;s profile.</span>
+
+<span class="sd">    - **URL:** ``/users/me``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** JWT required</span>
+
+<span class="sd">    This endpoint extracts the user ID from the JWT token identity, and ensures the corresponsing</span>
+<span class="sd">    user exists in the database. It then fetches the user information and returns their profile details </span>
+<span class="sd">    including ID, name, username, email, and role. </span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts ``user_id`` and claims from the JWT token.  </span>
+<span class="sd">        - Fetches the corresponding user from the database.  </span>
+<span class="sd">        - Returns the user&#39;s profile information.  </span>
+<span class="sd">        - Handles the case where the user record no longer exists.  </span>
+
+<span class="sd">    **Responses:**</span>
+
+<span class="sd">        - **200 OK** - Profile successfully retrieved.</span>
+<span class="sd">        - **404 Not Found** - User does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Successful Response**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;user_id&quot;: 4,</span>
+<span class="sd">                &quot;username&quot;: &quot;ayasabra&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;ayasabra@users.com&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Aya Sabra&quot;,</span>
+<span class="sd">                &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get the logged in user id and claims from token</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_jwt_identity</span><span class="p">())</span>  
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Fetch the user info by ID</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT u.user_id, u.username, u.email, u.name, r.role </span>
+<span class="sd">            FROM users u</span>
+<span class="sd">            JOIN roles r ON u.role_id = r.role_id</span>
+<span class="sd">            WHERE u.user_id =?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,))</span>
+        
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># Success response</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+    <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+
+<span class="c1">### API to update own profile.</span>
+<div class="viewcode-block" id="update_my_profile">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.update_my_profile">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/me&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PUT&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_my_profile</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the authenticated user&#39;s profile.</span>
+
+<span class="sd">    **URL:** ``/users/me``  </span>
+<span class="sd">    **Method:** ``PUT``  </span>
+<span class="sd">    **Authentication:** JWT required</span>
+
+<span class="sd">    This endpoint allows an authenticated user (except service accounts) to update their </span>
+<span class="sd">    own profile information. The final profile information reflect the new values for the </span>
+<span class="sd">    fields provided in the request body and the old values for the other fields. </span>
+<span class="sd">    Role change requests will be ignored by the system. </span>
+
+<span class="sd">    **Allowed but optional fields to be updated:**</span>
+<span class="sd">        - **username** (*str*) - New username (must be unique).</span>
+<span class="sd">        - **email** (*str*) - New email address (must be unique).</span>
+<span class="sd">        - **password** (*str*) -  New password (stored as a hash).</span>
+<span class="sd">        - **name** (*str*) - Updated full name.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts ``user_id`` from the JWT token.</span>
+<span class="sd">        - Rejects profile updates for users with role ``service_account``.</span>
+<span class="sd">        - Fetches the current user information from the database.</span>
+<span class="sd">        - Ensures at least one field is provided in the JSON body.</span>
+<span class="sd">        - Trims whitespace from provided fields.</span>
+<span class="sd">        - Validates the uniqueness of the new ``username`` and ``email``.</span>
+<span class="sd">        - Hashes the password using ``werkzeug.security.generate_password_hash``.</span>
+<span class="sd">        - Updates the fields provided in the request only.</span>
+<span class="sd">        - Ignores user role field updates.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Profile updated successfully.</span>
+<span class="sd">        - **400 Bad Request** - No fields were provided to update.</span>
+<span class="sd">        - **403 Forbidden** - Service accounts cannot update their profiles.</span>
+<span class="sd">        - **404 Not Found** - User does not exist.</span>
+<span class="sd">        - **409 Conflict** - Username or email already exists.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;username&quot;: &quot;aya_sabra&quot;,</span>
+<span class="sd">            &quot;email&quot;: &quot;aya_sabra@users.com&quot;,</span>
+<span class="sd">            &quot;password&quot;: &quot;aya_123&quot;,</span>
+<span class="sd">            &quot;name&quot;: &quot;Aya Sabra&quot;</span>
+<span class="sd">        }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;message&quot;: &quot;Profile updated successfully&quot;,</span>
+<span class="sd">            &quot;user&quot;: {</span>
+<span class="sd">                &quot;user_id&quot;: 4,</span>
+<span class="sd">                &quot;username&quot;: &quot;aya_sabra&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;aya_sabra@users.com&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Aya Sabra&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">user_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_jwt_identity</span><span class="p">())</span>  
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Validate user type</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;service_account&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Service accounts cannot update profile&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+
+    <span class="c1"># Extraxt user profile data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">allowed_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span>
+    <span class="n">new_username</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;username&quot;</span><span class="p">)</span>
+    <span class="n">new_email</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">)</span>
+    <span class="n">new_password</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;password&quot;</span><span class="p">)</span>
+    <span class="n">new_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+
+    <span class="c1"># If nothing is provided</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">new_username</span><span class="p">,</span> <span class="n">new_email</span><span class="p">,</span> <span class="n">new_password</span><span class="p">,</span> <span class="n">new_name</span><span class="p">]):</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;No fields to update&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+        
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Get current user</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT * FROM users WHERE user_id = ?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">current_user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># Set final values</span>
+        <span class="n">final_username</span> <span class="o">=</span> <span class="n">new_username</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">new_username</span> <span class="k">else</span> <span class="n">current_user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span>
+        <span class="n">final_email</span> <span class="o">=</span> <span class="n">new_email</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">new_email</span> <span class="k">else</span> <span class="n">current_user</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
+        <span class="n">final_name</span> <span class="o">=</span> <span class="n">new_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">new_name</span> <span class="k">else</span> <span class="n">current_user</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+        <span class="n">final_password_hash</span> <span class="o">=</span> <span class="n">generate_password_hash</span><span class="p">(</span><span class="n">new_password</span><span class="p">)</span> <span class="k">if</span> <span class="n">new_password</span> <span class="k">else</span> <span class="n">current_user</span><span class="p">[</span><span class="s2">&quot;password_hash&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Verify uniqueness of username and email excluding current user</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                SELECT 1 FROM users WHERE (username =? OR email = ?) AND user_id !=?&quot;&quot;&quot;</span> <span class="p">,</span> 
+                <span class="p">(</span><span class="n">final_username</span><span class="p">,</span> <span class="n">final_email</span><span class="p">,</span> <span class="n">user_id</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Username or email already exists&quot;</span><span class="p">}),</span> <span class="mi">409</span> <span class="c1"># conflict</span>
+            
+        <span class="c1"># Update the user</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            UPDATE users </span>
+<span class="sd">            SET username=?, email=?, password_hash =?, name=?  WHERE user_id = ?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">final_username</span><span class="p">,</span> <span class="n">final_email</span><span class="p">,</span>  <span class="n">final_password_hash</span><span class="p">,</span><span class="n">final_name</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+    <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Profile updated successfully&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+        <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">final_username</span><span class="p">,</span>
+        <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">final_email</span><span class="p">,</span>
+        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">final_name</span>
+    <span class="p">}</span>
+<span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### API to delete own account after password confirmation</span>
+<div class="viewcode-block" id="delete_my_profile">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.delete_my_profile">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/delete&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DELETE&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_my_profile</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Delete the authenticated user&#39;s account.**</span>
+
+<span class="sd">    - **URL:** ``/users/delete``  </span>
+<span class="sd">    - **Method:** ``DELETE``  </span>
+<span class="sd">    - **Authentication:** JWT required</span>
+
+<span class="sd">    This endpoint allows an authenticated user (except service accounts) to permanently </span>
+<span class="sd">    delete their account after password confirmation to avoid non-user or accidental requests. </span>
+<span class="sd">    Upon deletion, the user&#39;s active bookings are automatically cancelled and</span>
+<span class="sd">    bookings reviews are removed. </span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **password** (*str*) - The user&#39;s current password.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts ``user_id`` from the identity and role from the claim of the JWT token.</span>
+<span class="sd">        - Reject deletion requests from users with the role ``service_account``.</span>
+<span class="sd">        - Validates that a password is provided for confirmation.</span>
+<span class="sd">        - Fetches the user&#39;s stored password hash using ``werkzeug.security.check_password_hash``.</span>
+<span class="sd">        - Verifies the provided password by comapring it to stored user&#39;s password.</span>
+<span class="sd">        - Cancels all user&#39;s active (confirmed and pending) bookings.</span>
+<span class="sd">        - Deletes all the user&#39;s bookings reviews.</span>
+<span class="sd">        - Removes the user record from the database.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Account deleted; active bookings cancelled; reviews removed.</span>
+<span class="sd">        - **400 Bad Request** - Password confirmation not provided.</span>
+<span class="sd">        - **401 Unauthorized** - Incorrect password.</span>
+<span class="sd">        - **403 Forbidden** - Service accounts cannot delete themselves.</span>
+<span class="sd">        - **404 Not Found** - User not found.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;password&quot;: &quot;aya_123&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Account deleted successfully. </span>
+<span class="sd">                All active bookings were cancelled, and all reviews were deleted.&quot;,</span>
+<span class="sd">                &quot;user_id_deleted&quot;: 4</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">user_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_jwt_identity</span><span class="p">())</span>  
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+
+    <span class="c1"># Validate user type</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;service_account&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Service accounts cannot delete their own profile&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">password_confirm</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;password&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">password_confirm</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Password confirmation is required&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Fetch password to compare </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT password_hash FROM users WHERE user_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+
+        <span class="n">password_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">password_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="n">password_hash</span> <span class="o">=</span> <span class="n">password_row</span><span class="p">[</span><span class="s2">&quot;password_hash&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">check_password_hash</span><span class="p">(</span><span class="n">password_hash</span><span class="p">,</span> <span class="n">password_confirm</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Incorrect password&quot;</span><span class="p">}),</span> <span class="mi">401</span>
+        
+        <span class="c1"># Cancel all active bookings upon deletion</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        UPDATE bookings</span>
+<span class="sd">        SET status = &#39;cancelled&#39;</span>
+<span class="sd">        WHERE user_id =? AND status = &#39;confirmed&#39; &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span> <span class="p">)</span>
+
+        <span class="c1"># Remove all previous reviews </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            DELETE FROM reviews WHERE user_id =? &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Delete user </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM users WHERE user_id = ?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,))</span>
+        
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Account deleted successfully. All active bookings were cancelled, and all reviews were deleted.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;user_id_deleted&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+    <span class="p">}),</span> <span class="mi">200</span>   </div>
+
+
+
+<span class="c1">### Admin only API: assign roles</span>
+<div class="viewcode-block" id="assign_change_role">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.assign_change_role">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/&lt;int:user_id&gt;/role&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PUT&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">assign_change_role</span><span class="p">(</span><span class="n">user_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Assign or change a user&#39;s role (admin-only API).**</span>
+
+<span class="sd">    - **URL:** ``/users/&lt;user_id&gt;/role``  </span>
+<span class="sd">    - **Method:** ``PUT``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** Admin only</span>
+
+<span class="sd">    This endpoint allows the system admin to assign a role or change the role of an existing user.</span>
+<span class="sd">    The admin provided a role from the ones already listed in the ``roles`` table im the database. </span>
+<span class="sd">    After verification of both the existence of the user and the role, teh user&#39;s role field is updated</span>
+<span class="sd">    in the database,</span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **role** (*str*) - The new user&#39;s role to be assigned (should exist in the ``roles`` table)</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the current user&#39;s role from the JWT claims.</span>
+<span class="sd">        - Ensures the requester has the ``admin`` role.</span>
+<span class="sd">        - Validates that the JSON body contains a ``role`` field.</span>
+<span class="sd">        - Validates the existence of the target user.</span>
+<span class="sd">        - Validates the existence of the new role in the database.</span>
+<span class="sd">        - Finds the ID of the new role in the ``roles``.</span>
+<span class="sd">        - Updates the user&#39;s ``role_id`` with the corresponding role ID.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - User role updated successfully.</span>
+<span class="sd">        - **400 Bad Request** - Missing role field or invalid role name.</span>
+<span class="sd">        - **403 Forbidden** - Non-admin users cannot modify roles.</span>
+<span class="sd">        - **404 Not Found** - Target user not found.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;role&quot;: &quot;facility_manager&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Role updated successfully&quot;,</span>
+<span class="sd">                &quot;user&quot;: {</span>
+<span class="sd">                    &quot;user_id&quot;: 5,</span>
+<span class="sd">                    &quot;new_role&quot;: &quot;facility_manager&quot;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># check if the user is authorized (admins only)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;admin&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Only admins are authorized to check users&#39; related information.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="c1"># Extract new role</span>
+    <span class="n">data</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">new_role</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;role&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Validate input </span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">new_role</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span><span class="s2">&quot;Role is required&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        
+        <span class="c1"># Check if the user exists </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT * FROM users WHERE user_id =?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># find the role ID for the new role</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT role_id FROM roles WHERE role =?&quot;&quot;&quot;</span><span class="p">,</span> 
+            <span class="p">(</span><span class="n">new_role</span><span class="p">,))</span>
+        <span class="n">role_id_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">role_id_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid role&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+        <span class="n">role_id</span> <span class="o">=</span> <span class="n">role_id_row</span><span class="p">[</span><span class="s2">&quot;role_id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Update the user role</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">            UPDATE users SET role_id = ? WHERE user_id =? &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">role_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Role updated successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+            <span class="s2">&quot;new_role&quot;</span><span class="p">:</span> <span class="n">new_role</span>
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### Admin only API: get all users</span>
+<div class="viewcode-block" id="get_all_users">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.get_all_users">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_all_users</span><span class="p">():</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Retrieve the list of all users (admin and auditor only).**</span>
+
+<span class="sd">    - **URL:** ``/users``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``auditor``</span>
+
+<span class="sd">    This endpoint allows both the system administrator and the auditors to get all user information</span>
+<span class="sd">    in a structured list. It rejects any other types of users from requesting users&#39; information. </span>
+<span class="sd">    </span>
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the user&#39;s role from the JWT claims.</span>
+<span class="sd">        - Ensures that only ``admin`` or ``auditor`` roles can access the &quot;get all users&quot; endpoint.</span>
+<span class="sd">        - Retrieves all users from the database, ordered by their ``user_id``.</span>
+<span class="sd">        - Joins the ``users`` and ``roles`` tables on the ``role_id``  to retrieve the user role.</span>
+<span class="sd">        - Returns a list of user objects inclusing their IDs, usernames, emails, names, and roles.</span>
+
+<span class="sd">    **Response Fields (per user):**</span>
+<span class="sd">        - **user_id** (*int*)</span>
+<span class="sd">        - **username** (*str*)</span>
+<span class="sd">        - **email** (*str*)</span>
+<span class="sd">        - **name** (*str*)</span>
+<span class="sd">        - **role** (*str*)</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Returns a list of all users.</span>
+<span class="sd">        - **403 Forbidden** - User is not authorized to read all accounts.</span>
+<span class="sd">        - **500 Internal Server Error**- Database query failed.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;users&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;user_id&quot;: 1,</span>
+<span class="sd">                        &quot;username&quot;: &quot;admin&quot;,</span>
+<span class="sd">                        &quot;email&quot;: &quot;admin@users.com&quot;,</span>
+<span class="sd">                        &quot;name&quot;: &quot;System Admin&quot;,</span>
+<span class="sd">                        &quot;role&quot;: &quot;admin&quot;</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;user_id&quot;: 4,</span>
+<span class="sd">                        &quot;username&quot;: &quot;aya_sabra&quot;,</span>
+<span class="sd">                        &quot;email&quot;: &quot;aya_sabra@users.com&quot;,</span>
+<span class="sd">                        &quot;name&quot;: &quot;Aya Sabra&quot;</span>
+<span class="sd">                        &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">                    }</span>
+<span class="sd">                                        {</span>
+<span class="sd">                        &quot;user_id&quot;: 5,</span>
+<span class="sd">                        &quot;username&quot;: &quot;imane_ghalayini&quot;,</span>
+<span class="sd">                        &quot;email&quot;: &quot;imane_ghalayini@users.com&quot;,</span>
+<span class="sd">                        &quot;name&quot;: &quot;Imane Ghalayini&quot;</span>
+<span class="sd">                        &quot;role&quot;: &quot;facility_manager&quot;</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># check if the user is authorized (admins only)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span><span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;auditor&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT u.user_id, u.username, u.email, u.name, r.role</span>
+<span class="sd">            FROM users u</span>
+<span class="sd">            JOIN roles r ON u.role_id = r.role_id</span>
+<span class="sd">            ORDER BY u.user_id ASC&quot;&quot;&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">users</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="c1"># Response format </span>
+        <span class="n">users_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+            <span class="n">users_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>            
+            <span class="p">})</span>
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;users&quot;</span><span class="p">:</span> <span class="n">users_list</span><span class="p">}),</span> <span class="mi">200</span></div>
+
+
+<span class="c1">### Admin API: get a specific user&#39;s profile by username</span>
+<div class="viewcode-block" id="get_user_by_username">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.get_user_by_username">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/username/&lt;string:username&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_user_by_username</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Retrieve a user&#39;s profile by username (admin and auditor only).**</span>
+
+<span class="sd">    - **URL:** ``/username/&lt;username&gt;``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``auditor``</span>
+
+<span class="sd">    This endpoint allows both the system administrator and the auditors to </span>
+<span class="sd">    retrieve a user&#39;s profile by providing their username.  It rejects requests from</span>
+<span class="sd">    users with any other roles. </span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the requester&#39;s role from the JWT token.</span>
+<span class="sd">        - Ensures that only ``admin`` and ``auditor`` users have access.</span>
+<span class="sd">        - Finds the user by the provided username if they</span>
+<span class="sd">        - Joins the users and roles table on the ``role_id`` to retrieve the user role.</span>
+<span class="sd">        - Returns the user&#39;s profile details </span>
+
+<span class="sd">    **Response Fields:**</span>
+<span class="sd">        - **user_id** (*int*)</span>
+<span class="sd">        - **username** (*str*)</span>
+<span class="sd">        - **email** (*str*)</span>
+<span class="sd">        - **name** (*str*)</span>
+<span class="sd">        - **role** (*str*)</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - User profile successfully retrieved.</span>
+<span class="sd">        - **403 Forbidden** - Requester does not have permission.</span>
+<span class="sd">        - **404 Not Found** - No user exists with the given username.</span>
+<span class="sd">        - **500 Internal Server Error** - Database query failed.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;user_id&quot;: 4,</span>
+<span class="sd">                &quot;username&quot;: &quot;aya_sabra&quot;,</span>
+<span class="sd">                &quot;email&quot;: &quot;aya_sabra@users.com&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Aya Sabra&quot;,</span>
+<span class="sd">                &quot;role&quot;: &quot;user&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># check if the user is authorized (admins only)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;auditor&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT u.user_id, u.username, u.email, u.name, r.role</span>
+<span class="sd">            FROM users u </span>
+<span class="sd">            JOIN roles r ON u.role_id = r.role_id</span>
+<span class="sd">            WHERE u.username =?&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">username</span><span class="p">,)</span>
+        <span class="p">)</span>
+
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>   
+    
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+    <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="n">user</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+<span class="p">}),</span> <span class="mi">200</span></div>
+
+
+<span class="c1">### Admin API: reset a user&#39;s password</span>
+<div class="viewcode-block" id="reset_password">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.reset_password">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/&lt;int:user_id&gt;/reset-password&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PUT&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">reset_password</span><span class="p">(</span><span class="n">user_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Reset a user&#39;s password (admin only).**</span>
+
+<span class="sd">    - **URL:** ``/users/&lt;user_id&gt;/reset-password``  </span>
+<span class="sd">    - **Method:** ``PUT``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** Admin only</span>
+
+<span class="sd">    This endpoint allows the system administrator to reset the password of any user in the</span>
+<span class="sd">    system. The admin should provide a new password in the request body. The new password</span>
+<span class="sd">    is then and hashed and assigned to the user. </span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **password** (*str*) - The new password to be assigned to the user.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the requester&#39;s role from the JWT token.</span>
+<span class="sd">        - Ensures that only users with the ``admin`` role have access to this endpoint.</span>
+<span class="sd">        - Validates that a new password is provided in the request body.</span>
+<span class="sd">        - Validates the existence of teh target user in the database.</span>
+<span class="sd">        - Hashes the new password using ``werkzeug.security.generate_password_hash``.</span>
+<span class="sd">        - Replaces the user&#39;s password in the ``users`` table with the new password.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Password reset successfully.</span>
+<span class="sd">        - **400 Bad Request** - Missing new password field.</span>
+<span class="sd">        - **403 Forbidden** - Non-admin users cannot reset passwords.</span>
+<span class="sd">        - **404 Not Found** - Target user does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database operation failed.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;password&quot;: &quot;reset_012&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Password reset successfully.&quot;,</span>
+<span class="sd">                &quot;user_id&quot;: 3</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># check if the user is authorized (admins only)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;admin&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Only admins can reset passwords.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="c1"># Extract new password</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+    <span class="n">new_password</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;password&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">new_password</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;New password is required.&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Check if the user exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot; SELECT user_id FROM users where user_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found.&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># Hash the new password</span>
+        <span class="n">new_password_hash</span> <span class="o">=</span> <span class="n">generate_password_hash</span><span class="p">(</span><span class="n">new_password</span><span class="p">)</span>
+
+        <span class="c1"># Update the user&#39;s password</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            UPDATE users SET password_hash=? WHERE user_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">new_password_hash</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Password reset successfully.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_id&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+    <span class="p">}),</span> <span class="mi">200</span>  </div>
+
+
+<span class="c1">### Admin only API: delete a user&#39;s account by ID</span>
+<div class="viewcode-block" id="delete_user">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.delete_user">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/&lt;int:user_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;DELETE&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_user</span><span class="p">(</span><span class="n">user_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Delete a user&#39;s account by ID (admin only API).**</span>
+
+<span class="sd">    - **URL:** ``/users/&lt;user_id&gt;``  </span>
+<span class="sd">    - **Method:** ``DELETE``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** Admin only</span>
+
+<span class="sd">    This endpoint premits the system administrator to delete a user account from the</span>
+<span class="sd">    system. It cancels all user&#39;s active bookings (confimed and pending) and</span>
+<span class="sd">    delete the user&#39;s previous bookings reviews. Finally, it deletes the user&#39;s account by </span>
+<span class="sd">    removing it from the users table in the database.</span>
+<span class="sd">    Administrators are not allowed to delete their own accounts.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the admin&#39;s ID and role from the JWT token.</span>
+<span class="sd">        - Ensures that only admins are granted access to this endpoint.</span>
+<span class="sd">        - Blocks admins from deleting their own accounts.</span>
+<span class="sd">        - Confirms the existence of the intended user in the database.</span>
+<span class="sd">        - Cancels all user&#39;s active(``confirmed``, and ``pending``) bookings.</span>
+<span class="sd">        - Removes the user record from the ``users`` table in the database.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - User deleted successfully.</span>
+<span class="sd">        - **400 Bad Request** - Admin attempted to delete their own account.</span>
+<span class="sd">        - **403 Forbidden** - Non-admin users cannot delete accounts.</span>
+<span class="sd">        - **404 Not Found** - User does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;User deleted successfully.&quot;,</span>
+<span class="sd">                &quot;user_id_deleted&quot;: 3</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">admin_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_jwt_identity</span><span class="p">())</span>
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>                 
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># check if the user is authorized (admins only)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;admin&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Only admins can delete users.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="c1"># Reject the admin&#39;s request to delete their own account</span>
+    <span class="k">if</span> <span class="n">admin_id</span> <span class="o">==</span> <span class="n">user_id</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Admins cannot delete their own account.&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Check if user exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT user_id FROM users WHERE user_id = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,))</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># Cancel the active bookings</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            UPDATE bookings</span>
+<span class="sd">            SET status = &#39;cancelled&#39;</span>
+<span class="sd">            WHERE user_id =? AND status = &#39;confirmed&#39; &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,))</span>
+        
+        <span class="c1"># Delete the user</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            DELETE FROM users WHERE user_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">user_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;User deleted successfully.&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_id_deleted&quot;</span><span class="p">:</span> <span class="n">user_id</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+
+    
+<span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_SECRET_KEY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;secret_key&quot;</span>   
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_ACCESS_TOKEN_EXPIRES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># The token expires in one hour</span>
+    <span class="n">jwt</span> <span class="o">=</span> <span class="n">JWTManager</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">users_bp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">app</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">5001</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasmine Sabra.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
