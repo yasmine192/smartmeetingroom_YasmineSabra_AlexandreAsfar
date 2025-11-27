@@ -1,0 +1,1247 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>services.rooms_service.app &mdash; SmartMeetingRoom 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SmartMeetingRoom
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../users_api.html">Users Service Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../rooms_api.html">Rooms Service Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SmartMeetingRoom</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">services.rooms_service.app</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for services.rooms_service.app</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">**Rooms Service - API Module**</span>
+<span class="sd">    This module implements the Rooms microservice responsible for managing rooms,</span>
+<span class="sd">    their equipment, availability status, and search/filter operations. All</span>
+<span class="sd">    endpoints are organized under the ``rooms_bp`` Flask Blueprint.</span>
+
+<span class="sd">**Main Features**</span>
+<span class="sd">    - Create, update, view, and delete rooms.</span>
+<span class="sd">    - Manage room equipment (add, remove, increment, decrement).</span>
+<span class="sd">    - Update room operational status (available / out_of_service).</span>
+<span class="sd">    - Retrieve rooms with flexible filtering (capacity, location, status,</span>
+<span class="sd">    equipment).</span>
+<span class="sd">    - Health check endpoint.</span>
+
+<span class="sd">**Structure**</span>
+<span class="sd">    - ``rooms_bp``: Flask Blueprint containing all Rooms API routes.</span>
+<span class="sd">    - ``get_db_connection()``: Imported utility for SQLite connections.</span>
+<span class="sd">    - Routes include:</span>
+<span class="sd">        - POST ``/rooms`` - Create a room.</span>
+<span class="sd">        - GET ``/rooms`` - Retrieve rooms (with filters).</span>
+<span class="sd">        - GET ``/rooms/&lt;id&gt;`` - Get room details.</span>
+<span class="sd">        - PUT ``/rooms/&lt;id&gt;`` - Update room information.</span>
+<span class="sd">        - DELETE ``/rooms/&lt;id&gt;`` - Delete a room and related records.</span>
+<span class="sd">        - POST/DELETE equipment routes.</span>
+<span class="sd">        - PUT room status route.</span>
+<span class="sd">        - GET ``/rooms/health`` - Service health check.</span>
+
+<span class="sd">**Database Tables Used**</span>
+<span class="sd">    - ``rooms`` - Main room definitions.</span>
+<span class="sd">    - ``equipment`` - Global equipment definitions.</span>
+<span class="sd">    - ``room_equipment`` - Room-to-equipment mapping table.</span>
+<span class="sd">    - ``bookings`` - Active bookings cancelled when a room is deleted.</span>
+<span class="sd">    - ``reviews`` - Reviews removed when a room is deleted.</span>
+
+<span class="sd">**Authentication &amp; Authorization**</span>
+<span class="sd">    All endpoints require JWT-based authentication. Only privileged roles</span>
+<span class="sd">    (``admin`` or ``facility_manager``) may create, modify, or delete rooms or</span>
+<span class="sd">    equipment. Other roles (``user``, ``auditor``) may retrieve room details.</span>
+
+<span class="sd">    This docstring is used by Sphinx to generate top-level HTML documentation for</span>
+<span class="sd">    the entire Rooms microservice.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">Blueprint</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_password_hash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_password_hash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTManager</span><span class="p">,</span> <span class="n">create_access_token</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">jwt_required</span><span class="p">,</span> <span class="n">get_jwt_identity</span><span class="p">,</span> <span class="n">get_jwt</span>
+
+<span class="c1"># Connecting to the database</span>
+<span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span>
+<span class="n">DB_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="s2">&quot;database&quot;</span><span class="p">,</span> <span class="s2">&quot;project.db&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_db_connection</span><span class="p">():</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DB_PATH</span><span class="p">)</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>   <span class="c1"># To access columns by name</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;PRAGMA foreign_keys = ON;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conn</span>
+
+<span class="n">rooms_bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;rooms_bp&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="health">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.health">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/health&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Health check endpoint for the Rooms service.</span>
+
+<span class="sd">    **URL:** ``/rooms/health``  </span>
+<span class="sd">    **Method:** ``GET``  </span>
+<span class="sd">    **Authentication:** None</span>
+
+<span class="sd">    This endpoint is used to verify that the Rooms service is running and</span>
+<span class="sd">    responding correctly.  </span>
+<span class="sd">    It does not perform any database checks—only returns a simple JSON status</span>
+<span class="sd">    message confirming service availability.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">    - **200 OK** – Rooms service is responsive.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">    .. code-block:: json</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;service&quot;: &quot;rooms&quot;,</span>
+<span class="sd">            &quot;status&quot;: &quot;ok&quot;</span>
+<span class="sd">        }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;rooms&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">}),</span> <span class="mi">200</span></div>
+
+
+<span class="c1">### API to create a new room</span>
+<div class="viewcode-block" id="create_room">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.create_room">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span> 
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_room</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new room (admin and facility manager only).</span>
+
+<span class="sd">    - **URL:** ``/rooms``  </span>
+<span class="sd">    - **Method:** ``POST``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoint allows users with user roles ``admin`` or ``facility_manager`` </span>
+<span class="sd">    to create a new room record in ``rooms`` table of the database. Each room creation</span>
+<span class="sd">    request should include the room&#39;s name, capacity, location, and an optional equipment list.</span>
+<span class="sd">    Each equipment item will be linked to an existing equipment type or added as a new one.</span>
+<span class="sd">    All rooms are marked by default as available upon creation. </span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **name** (*str*) - Room name (required).  </span>
+<span class="sd">        - **capacity** (*int*) - Capacity (required).  </span>
+<span class="sd">        - **location** (*str*) - Room location (required).  </span>
+<span class="sd">        - **equipment** (*list[str]*) - List of equipment (optional).</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Verifies that the requester has either ``admin`` or ``facility_manager`` roles.</span>
+<span class="sd">        - Ensures that the required fields (``name``, ``capacity``, and ``location``) are provided in the request body.</span>
+<span class="sd">        - Inserts the room into the ``rooms`` table with the default status ``available``.</span>
+<span class="sd">        - For each provided equipment item:</span>
+<span class="sd">            - Checks whether this type of equipment exists in the ``equipment`` table.</span>
+<span class="sd">            - Inserts the new equipment type if it does not exist.</span>
+<span class="sd">            - Creates a mapping in ``room_equipment`` with a default quantity of 1.</span>
+<span class="sd">            - Returns the created room details.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - Room successfully created.</span>
+<span class="sd">        - **400 Bad Request** - Missing required fields.</span>
+<span class="sd">        - **403 Forbidden** - Requester is not authorized.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Request:**</span>
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;name&quot;: &quot;Meeting room&quot;,</span>
+<span class="sd">                &quot;capacity&quot;: 25,</span>
+<span class="sd">                &quot;location&quot;: &quot;Bechtel 300&quot;,</span>
+<span class="sd">                &quot;equipment&quot;: [&quot;Projector&quot;, &quot;Whiteboard&quot;, &quot;Microphone&quot;]</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Room created successfully&quot;,</span>
+<span class="sd">                &quot;room&quot;: {</span>
+<span class="sd">                    &quot;room_id&quot;: 2,</span>
+<span class="sd">                    &quot;name&quot;: &quot;Meeting Room&quot;,</span>
+<span class="sd">                    &quot;capacity&quot;: 25,</span>
+<span class="sd">                    &quot;location&quot;: &quot;Bechtel 300&quot;,</span>
+<span class="sd">                    &quot;status&quot;: &quot;available&quot;,</span>
+<span class="sd">                    &quot;equipment&quot;: [&quot;Projector&quot;, &quot;Whiteboard&quot;, &quot;Microphone&quot;]</span>
+<span class="sd">                    }</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;role&quot;</span><span class="p">)</span>   <span class="c1"># FIXED</span>
+
+    <span class="c1"># Validate authorization</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to create rooms&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="c1"># Extract data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+    <span class="n">capacity</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity&quot;</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    <span class="n">equipment_list</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;equipment&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">default_status</span> <span class="o">=</span> <span class="s2">&quot;available&quot;</span>
+
+    <span class="c1"># Validate required fields</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">capacity</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">location</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Missing required fields: name, capacity, location&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Insert room</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            INSERT INTO rooms (name, capacity, location, status)</span>
+<span class="sd">            VALUES (?, ?, ?, ?)</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">default_status</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">room_id</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">lastrowid</span>
+
+        <span class="c1"># Insert equipment if any</span>
+        <span class="k">for</span> <span class="n">equi</span> <span class="ow">in</span> <span class="n">equipment_list</span><span class="p">:</span>
+            <span class="n">equi_type</span> <span class="o">=</span> <span class="n">equi</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+            <span class="c1"># Check if equipment already exists</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT equi_id FROM equipment WHERE type = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">equi_type</span><span class="p">,))</span>
+            <span class="n">equi_row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">equi_row</span><span class="p">:</span>
+                <span class="n">equi_id</span> <span class="o">=</span> <span class="n">equi_row</span><span class="p">[</span><span class="s2">&quot;equi_id&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Insert new equipment type (FIXED SQL)</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="s2">&quot;INSERT INTO equipment (type) VALUES (?)&quot;</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">equi_type</span><span class="p">,)</span>
+                <span class="p">)</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+                <span class="n">equi_id</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">lastrowid</span>
+
+            <span class="c1"># Insert into room_equipment</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                INSERT INTO room_equipment (room_id, equi_id, quantity) </span>
+<span class="sd">                VALUES (?, ?, ?)</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Room created successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room_id</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;capacity&quot;</span><span class="p">:</span> <span class="n">capacity</span><span class="p">,</span>
+            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">default_status</span><span class="p">,</span>
+            <span class="s2">&quot;equipment&quot;</span><span class="p">:</span> <span class="n">equipment_list</span>
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">201</span></div>
+
+
+
+<span class="c1">### API to get room details by ID</span>
+<div class="viewcode-block" id="get_room_by_id">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.get_room_by_id">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span> 
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_room_by_id</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Retrieve full details of a specific room by ID**</span>
+
+<span class="sd">    - **URL:** ``/rooms/&lt;room_id&gt;``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin``, ``facility_manager``, ``auditor``, or ``user``</span>
+
+<span class="sd">    This endpoint return the full details of a specific room upon request from </span>
+<span class="sd">    an authorized user. The details include the room&#39;s name, capacity, location,</span>
+<span class="sd">    list of equipment along with the available quantity of each, and status </span>
+<span class="sd">    (available, booked, out of service).</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the user&#39;s role form the claims of the JWT toke.</span>
+<span class="sd">        - Ensures that the user is authorized to request room details.</span>
+<span class="sd">        - Fetches the room details by ID from the rooms table in the database.</span>
+<span class="sd">        - Selects the IDs of the equipments assigned to the room from the </span>
+<span class="sd">        joined room_equipment table.</span>
+<span class="sd">        - Tracks the quantity of each assigned equipment.</span>
+<span class="sd">        - Returns a room object with its full details and current status.</span>
+
+<span class="sd">    **Response Fields:**</span>
+<span class="sd">        - **room_id** (*int*)</span>
+<span class="sd">        - **name** (*str*)</span>
+<span class="sd">        - **capacity** (*int*)</span>
+<span class="sd">        - **location** (*str*)</span>
+<span class="sd">        - **status** (*str*) - ``available``, ``booked``, or ``out_of_service``</span>
+<span class="sd">        - **equipment** (*list*) - A list of objects:</span>
+<span class="sd">            - **type** (*str*) - Equipment type  </span>
+<span class="sd">            - **quantity** (*int*) - Available quantity  </span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Room details returned successfully.</span>
+<span class="sd">        - **403 Forbidden** - Requester is not authorized.</span>
+<span class="sd">        - **404 Not Found** - Room does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error occurred.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;room_id&quot;: 4,</span>
+<span class="sd">                &quot;name&quot;: &quot;Exam Room, C&quot;,</span>
+<span class="sd">                &quot;capacity&quot;: 50,</span>
+<span class="sd">                &quot;location&quot;: &quot;SRB building, floor 3&quot;,</span>
+<span class="sd">                &quot;status&quot;: &quot;booked&quot;,</span>
+<span class="sd">                &quot;equipment&quot;: [</span>
+<span class="sd">                    {&quot;type&quot;: &quot;Computers&quot;, &quot;quantity&quot;: 50},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;Whiteboard&quot;, &quot;quantity&quot;: 1}</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Validate authorization</span>
+    <span class="n">authorized_roles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span><span class="s2">&quot;facility_manager&quot;</span><span class="p">,</span> <span class="s2">&quot;auditor&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">authorized_roles</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to view room details&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="c1"># Fetch details - equipment</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT room_id, name, capacity, location, status </span>
+<span class="sd">            FROM rooms</span>
+<span class="sd">            WHERE room_id = ?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">room</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">room</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Room not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># Fetch equipment list</span>
+        <span class="c1"># loop in room_equipment table and for every row when the room_id = intended room_id, select from quipment table the corresponding item type to the equi_id in the room_equi table row </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT e.type, re.quantity</span>
+<span class="sd">            from equipment e</span>
+<span class="sd">            JOIN room_equipment re ON e.equi_id = re.equi_id</span>
+<span class="sd">            WHERE re.room_id = ?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">equipment_rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">equipment_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">equipment_rows</span><span class="p">:</span>
+            <span class="n">equipment_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span>
+            <span class="p">})</span>
+
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;room_id&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;capacity&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;capacity&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;equipment&quot;</span><span class="p">:</span> <span class="n">equipment_list</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### API to edit room details: name, capacity, location</span>
+<div class="viewcode-block" id="update_room_details">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.update_room_details">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PUT&quot;</span><span class="p">])</span> 
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_room_details</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update room details (name, capacity, location)</span>
+
+<span class="sd">    - **URL:** ``/rooms/&lt;room_id&gt;``  </span>
+<span class="sd">    - **Method:** ``PUT``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoints allows authorized users (``admin`` and ``facility_manager``)</span>
+<span class="sd">    to update the name, the capacity, and the location of an existing room.</span>
+<span class="sd">    It verifies that at least one field is provided in the request body and return </span>
+<span class="sd">    the room details with the new values for the updated fields and the old values for</span>
+<span class="sd">    the other fields. Status and equipment update requests are ignored.</span>
+
+<span class="sd">    **Updatable Fields (optional):**</span>
+<span class="sd">        - **name** (*str*) -  New name.  </span>
+<span class="sd">        - **capacity** (*int*) - New capacity.  </span>
+<span class="sd">        - **location** (*str*) - New location.</span>
+<span class="sd">    </span>
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extracts the user role from the claims of the JWT token. </span>
+<span class="sd">        - Ensures that the user is authorized to update room details. </span>
+<span class="sd">        - Rejects update request from non authorized users.</span>
+<span class="sd">        - Ensures that at least one update field is provided in the request body.</span>
+<span class="sd">        - Extracts the new field values from the request body.</span>
+<span class="sd">        - Fetch the current room details from the databse, if the room exists.</span>
+<span class="sd">        - Decides on the final room details by assigning the new values to the requested fields and the old values for the fields not included in the request.</span>
+<span class="sd">        - Updates the room details in the database using the final values. </span>
+
+<span class="sd">    </span>
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Room updated successfully.</span>
+<span class="sd">        - **400 Bad Request** - No fields provided to update.</span>
+<span class="sd">        - **403 Forbidden** - Requester is not allowed to update rooms.</span>
+<span class="sd">        - **404 Not Found** - Room does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database update failed.</span>
+
+<span class="sd">    **Example Request:**</span>
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;name&quot;: &quot;Conference Room&quot;,</span>
+<span class="sd">                &quot;capacity&quot;: 40,</span>
+<span class="sd">                &quot;location&quot;: &quot;Bechtel, floor 3&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Room updated successfully&quot;,</span>
+<span class="sd">                &quot;room&quot;: {</span>
+<span class="sd">                    &quot;room_id&quot;: 2,</span>
+<span class="sd">                    &quot;name&quot;: &quot;Conference Room&quot;,</span>
+<span class="sd">                    &quot;capacity&quot;: 40,</span>
+<span class="sd">                    &quot;location&quot;: &quot;Bechtel, floor 3&quot;,</span>
+<span class="sd">                    &quot;status&quot;: &quot;out_of_service!&quot;</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to update room details&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+        
+    <span class="c1"># Extract update fields</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">new_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+    <span class="n">new_capacity</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity&quot;</span><span class="p">)</span>
+    <span class="n">new_location</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        
+        <span class="c1"># Fetch the current fields of the room to be updated </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT name, capacity, location, status </span>
+<span class="s2">            FROM rooms </span>
+<span class="s2">            WHERE room_id = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">room_id</span><span class="p">,))</span>
+        
+        <span class="n">room</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">room</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Room not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">new_name</span><span class="p">,</span> <span class="n">new_capacity</span><span class="p">,</span> <span class="n">new_location</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;No fields to update&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+
+
+        
+        <span class="c1"># Determine the final fields of the room </span>
+        <span class="n">final_name</span> <span class="o">=</span> <span class="n">new_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">new_name</span> <span class="k">else</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+        <span class="n">final_capacity</span> <span class="o">=</span> <span class="n">new_capacity</span> <span class="k">if</span> <span class="n">new_capacity</span> <span class="k">else</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;capacity&quot;</span><span class="p">]</span>
+        <span class="n">final_location</span> <span class="o">=</span> <span class="n">new_location</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">new_location</span> <span class="k">else</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Update room</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            UPDATE rooms</span>
+<span class="s2">            SET name=?, capacity=?, location=?</span>
+<span class="s2">            WHERE room_id = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">final_name</span><span class="p">,</span> <span class="n">final_capacity</span><span class="p">,</span> <span class="n">final_location</span><span class="p">,</span> <span class="n">room_id</span><span class="p">))</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Room updated successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room_id</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">final_name</span><span class="p">,</span>
+            <span class="s2">&quot;capacity&quot;</span><span class="p">:</span> <span class="n">final_capacity</span><span class="p">,</span>
+            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">final_location</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### API to delete a room with bookings cancellation and reviews removal</span>
+<div class="viewcode-block" id="delete_room">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.delete_room">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;DELETE&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_room</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Delete an existing room and related data.**</span>
+
+<span class="sd">    - **URL:** ``/rooms/&lt;room_id&gt;``  </span>
+<span class="sd">    - **Method:** ``DELETE``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoint cancels the intended room&#39;s pending and confirmed booking, </span>
+<span class="sd">    deletes related booking reviews, and removes all assigned equipments. Finally,</span>
+<span class="sd">    it safely deletes the room record room from the rooms table in the database. </span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Verifies requester role (admin or facility manager).</span>
+<span class="sd">        - Checks whether the room exists in the database.</span>
+<span class="sd">        - Cancels all room bookings with status ``pending`` or ``confirmed``.</span>
+<span class="sd">        - Deletes all reviews associated with the room.</span>
+<span class="sd">        - Deletes all equipment mappings from ``room_equipment``.</span>
+<span class="sd">        - Removes the room record from ``rooms`` table.</span>
+<span class="sd">        - Returns a confirmation message with the deleted room ID.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Room deleted successfully.</span>
+<span class="sd">        - **403 Forbidden** - Requester is not authorized.</span>
+<span class="sd">        - **404 Not Found** - Room does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database operation failed.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Room deleted successfully&quot;,</span>
+<span class="sd">                &quot;room_id_deleted&quot;: 13</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to update room details&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># Check if the room exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT room_id FROM rooms WHERE room_id =?&quot;&quot;&quot;</span><span class="p">,</span> 
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">room</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">room</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Room not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+
+        <span class="c1"># Cancel active and pending bookings</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            UPDATE bookings </span>
+<span class="sd">            SET status = &#39;cancelled&#39;</span>
+<span class="sd">            WHERE room_id =? AND (status = &#39;pending&#39; or status = &#39;confirmed&#39;) &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Delete all reviews</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETE FROM reviews WHERE room_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Delete the room&#39;s equipment </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            DELETE FROM room_equipment WHERE room_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Delete the room </span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            DELETE FROM rooms WHERE room_id=?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Room deleted successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room_id_deleted&quot;</span><span class="p">:</span> <span class="n">room_id</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### API to add a room equipment</span>
+<div class="viewcode-block" id="add_equipment">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.add_equipment">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;/equipment&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_equipment</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Add or increment an equipment item for a specific room.**</span>
+
+<span class="sd">    - **URL:** ``/rooms/&lt;room_id&gt;/equipment``  </span>
+<span class="sd">    - **Method:** ``POST``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoint allows adding an equipment item to a room by an authorized user, while</span>
+<span class="sd">    requests from unauthorized users are rejected. If the equipment type does not previously </span>
+<span class="sd">    exist in the global ``equipment`` table, it is automatically created. If the room already contains this equipment type,</span>
+<span class="sd">    its quantity is incremented; otherwise, a new association entry is added in  </span>
+<span class="sd">    ``room_equipment``.</span>
+
+<span class="sd">    **Request JSON Fields:**</span>
+<span class="sd">        - **equipment** (*str*) - The type/name of the equipment item to add.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Verifies requester authorization.</span>
+<span class="sd">        - Ensures that the intended room exist in the rooms table.</span>
+<span class="sd">        - Posts the equipment type if it does not exist in the equipments table.</span>
+<span class="sd">        - Checks whether the room already has this equipment:</span>
+<span class="sd">            - If it does, increments its quantity.</span>
+<span class="sd">            - If it does not, create the equipment type and add it to the room with quanity = 1.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - Equipment added or quantity incremented.</span>
+<span class="sd">        - **400 Bad Request** - Missing equipment field.</span>
+<span class="sd">        - **403 Forbidden** - Unauthorized requester.</span>
+<span class="sd">        - **404 Not Found** - Room does not exist.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;equipment&quot;: &quot;Whiteboard&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Equipment added successfully&quot;,</span>
+<span class="sd">                &quot;room_id&quot;: 10,</span>
+<span class="sd">                &quot;added_equipment&quot;: &quot;Computer&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to add room equipment&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">equi_type</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;equipment&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">equi_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Type of equipment item is required&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="c1"># Check if the room exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT room_id FROM rooms WHERE room_id =?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">room_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">room_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Room not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># if the equipment type does not exist, add it</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT equi_id FROM equipment WHERE type =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">equi_type</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">equi_id_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">equi_id_row</span><span class="p">:</span>
+            <span class="n">equi_id</span> <span class="o">=</span> <span class="n">equi_id_row</span><span class="p">[</span><span class="s2">&quot;equi_id&quot;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># add the new type </span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            INSERT INTO equipment (type) VALUES (?)&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">equi_type</span><span class="p">,)</span>
+            <span class="p">)</span>
+            <span class="n">equi_id</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">lastrowid</span>
+        <span class="c1"># Check if the room already has this equi type =&gt; increment quantity</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SELECT quantity FROM room_equipment WHERE room_id =? AND equi_id = ?&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">quantity_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> 
+        <span class="k">if</span> <span class="n">quantity_row</span><span class="p">:</span>
+            <span class="n">quantity</span> <span class="o">=</span> <span class="n">quantity_row</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">quantity</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">quantity</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span>
+            <span class="c1"># Increment </span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                UPDATE room_equipment </span>
+<span class="sd">                SET quantity = ?</span>
+<span class="sd">                WHERE room_id =? AND equi_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">quantity</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># add the new item to the room</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                INSERT INTO room_equipment (room_id, equi_id, quantity)</span>
+<span class="sd">                VALUES (?, ?, 1)&quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Equipment added successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room_id</span><span class="p">,</span>
+        <span class="s2">&quot;added_equipment&quot;</span><span class="p">:</span> <span class="n">equi_type</span>
+    <span class="p">}),</span> <span class="mi">201</span></div>
+
+
+
+<span class="c1">### API to delete a room equipment</span>
+<div class="viewcode-block" id="delete_equipment">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.delete_equipment">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;/equipment/&lt;int:equi_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;DELETE&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_equipment</span><span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Remove or decrement an equipment item from a room.**</span>
+
+<span class="sd">        - **URL:** ``/rooms/&lt;room_id&gt;/equipment/&lt;equi_id&gt;``  </span>
+<span class="sd">        - **Method:** ``DELETE``  </span>
+<span class="sd">        - **Authentication:** JWT required  </span>
+<span class="sd">        - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoint removes equipment from a room.  </span>
+<span class="sd">    If the equipment has a quantity greater than 1, the quantity is decremented.</span>
+<span class="sd">    If the quantity is exactly 1, the equipment mapping is removed from</span>
+<span class="sd">    ``room_equipment`` entirely.  </span>
+<span class="sd">    The equipment type itself remains in the  ``equipment`` table.</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Verifies requester authorization.</span>
+<span class="sd">        - Ensures the room exists.</span>
+<span class="sd">        - Ensures the equipment type exists.</span>
+<span class="sd">        - Ensures the equipment is actually assigned to the room.</span>
+<span class="sd">        - Decrements quantity or deletes the mapping entirely.</span>
+<span class="sd">        - Returns the equipment type removed.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **201 Created** - Equipment successfully removed or quantity decremented.</span>
+<span class="sd">        - **403 Forbidden** - Unauthorized requester.</span>
+<span class="sd">        - **404 Not Found** - Room or equipment not found, or equipment not assigned to the room.</span>
+<span class="sd">        - **500 Internal Server Error** - Database failure.</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Equipment removed successfully&quot;,</span>
+<span class="sd">                &quot;room_id&quot;: 9,</span>
+<span class="sd">                &quot;removed_equipment&quot;: &quot;Table&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to delete room equipment&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+            
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="c1"># Check if the room exists</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT room_id FROM rooms WHERE room_id =?</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">room_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">room_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">room_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Room not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="c1"># if the equipment does not exists - cannot delete it</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            SELECT equi_id, type FROM equipment WHERE equi_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">equi_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">equi_id_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">equi_id_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Equipment not found&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+        
+        <span class="n">equi_type</span> <span class="o">=</span> <span class="n">equi_id_row</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Check if the room already has this equipment type =&gt; decrement quantity</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SELECT quantity </span>
+<span class="sd">        FROM room_equipment </span>
+<span class="sd">        WHERE room_id =? AND equi_id = ?&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">quantity_row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> 
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quantity_row</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;This equipment is not available in this room&quot;</span>
+        <span class="p">}),</span> <span class="mi">404</span>
+
+        <span class="n">quantity</span> <span class="o">=</span> <span class="n">quantity_row</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span> 
+
+        <span class="k">if</span> <span class="n">quantity</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># decrement </span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                UPDATE room_equipment </span>
+<span class="sd">                SET quantity = ?</span>
+<span class="sd">                WHERE room_id =? AND equi_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">quantity</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># remove the equipment from the room</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                DELETE FROM room_equipment </span>
+<span class="sd">                WHERE room_id =? AND equi_id=?&quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">room_id</span><span class="p">,</span> <span class="n">equi_id</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Equipment removed successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room_id</span><span class="p">,</span>
+        <span class="s2">&quot;removed_equipment&quot;</span><span class="p">:</span> <span class="n">equi_type</span>
+    <span class="p">}),</span> <span class="mi">201</span></div>
+
+
+<span class="c1">### API to mark a room out of service/available again</span>
+<div class="viewcode-block" id="update_room_status">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.update_room_status">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/&lt;int:room_id&gt;/status&quot;</span><span class="p">,</span> <span class="n">methods</span> <span class="o">=</span><span class="p">[</span><span class="s2">&quot;PUT&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_room_status</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Update the availability status of a room.**</span>
+
+<span class="sd">    - **URL:** ``/rooms/&lt;room_id&gt;/status``  </span>
+<span class="sd">    - **Method:** ``PUT``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin`` or ``facility_manager``</span>
+
+<span class="sd">    This endpoint allows the facility manager to marks a room out of service to temporarly</span>
+<span class="sd">    prevent booking and mark it back as available when maintenance/safety issues resolution ..</span>
+<span class="sd">    are complete. As a backup plan for when the facility manager is unavailable, </span>
+<span class="sd">    the admin is granted access to this endpoint as well. </span>
+
+<span class="sd">    **Status Values:**</span>
+<span class="sd">        - ``available``</span>
+<span class="sd">        - ``out_of_service``</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Extract the user role from the JWT token.</span>
+<span class="sd">        - Ensure that only facility managers and admin are allowed access.</span>
+<span class="sd">        - Validate a new status is provided and ensure it is one of (available, out_of_service).</span>
+<span class="sd">        - Extract new status from the JSON request body.</span>
+<span class="sd">        - Update the corresponsing room status to the new one.</span>
+<span class="sd">     </span>
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Status updated successfully.</span>
+<span class="sd">        - **400 Bad Request** - Missing or invalid status.</span>
+<span class="sd">        - **403 Forbidden** - Requester not authorized.</span>
+<span class="sd">        - **500 Internal Server Error** - Database error.</span>
+
+<span class="sd">    **Example Request:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;status&quot;: &quot;out_of_service&quot;</span>
+<span class="sd">            }</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;message&quot;: &quot;Room status updated successfully&quot;,</span>
+<span class="sd">                &quot;room_id&quot;: 8,</span>
+<span class="sd">                &quot;room_status&quot;: &quot;out_of_service&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Only admins and facility managers can mark a room out of service, and mark it back as available</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Not authorized to update room status&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+    
+    <span class="c1"># Extract new status</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">new_status</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">new_status</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;New status is required&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="k">if</span> <span class="n">new_status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;available&quot;</span><span class="p">,</span> <span class="s2">&quot;out_of_service&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Invalid status&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            UPDATE rooms</span>
+<span class="sd">            SET status =? WHERE room_id =?&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">new_status</span><span class="p">,</span> <span class="n">room_id</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Room status updated successfully&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room_id</span><span class="p">,</span>
+        <span class="s2">&quot;room_status&quot;</span><span class="p">:</span> <span class="n">new_status</span>
+    <span class="p">}),</span> <span class="mi">200</span></div>
+
+
+
+<span class="c1">### API to get all rooms with filters</span>
+<div class="viewcode-block" id="get_rooms">
+<a class="viewcode-back" href="../../../rooms_api.html#services.rooms_service.app.get_rooms">[docs]</a>
+<span class="nd">@rooms_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms&quot;</span><span class="p">,</span> <span class="n">methods</span> <span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@jwt_required</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_rooms</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    **Retrieve a list of rooms with optional filtering.**</span>
+
+<span class="sd">    - **URL:** ``/rooms``  </span>
+<span class="sd">    - **Method:** ``GET``  </span>
+<span class="sd">    - **Authentication:** JWT required  </span>
+<span class="sd">    - **Authorization:** ``admin``, ``facility_manager``, ``user``, ``auditor``</span>
+
+<span class="sd">    This endpoints allows users to view all available removes. </span>
+<span class="sd">    They can optionally filter out rooms by availability, by capacity, </span>
+<span class="sd">    by location, and by eqipment item available in their equipment list. </span>
+
+
+<span class="sd">    **Query Parameters:**</span>
+<span class="sd">        - **capacity** (*int*, optional) - Minimum capacity of the room.  </span>
+<span class="sd">        - **location** (*str*, optional) - Partial match filter using SQL ``LIKE``.  </span>
+<span class="sd">        - **equipment** (*str*, optional) - Returns only rooms containing the specified equipment type.  </span>
+<span class="sd">        - **status** (*str*, optional) - Filter by room status (``available``, ``booked``, ``out_of_service``).</span>
+
+<span class="sd">    **Behavior:**</span>
+<span class="sd">        - Validates user authorization.</span>
+<span class="sd">        - Dynamically builds SQL query based on provided filters.</span>
+<span class="sd">        - Supports combined filtering (e.g., capacity + location + equipment).</span>
+<span class="sd">        - Returns each room along with its equipment list and quantities.</span>
+
+<span class="sd">    **Responses:**</span>
+<span class="sd">        - **200 OK** - Matching rooms returned successfully.</span>
+<span class="sd">        - **403 Forbidden** - User not authorized to view rooms.</span>
+<span class="sd">        - **500 Internal Server Error** - Database operation failed.</span>
+
+<span class="sd">    **Example Request (with filters):**</span>
+
+<span class="sd">        ``http://localhost:5000/rooms?capacity=20&amp;location=Hall&amp;equipment=Projector``</span>
+
+<span class="sd">    **Example Successful Response:**</span>
+
+<span class="sd">        .. code-block:: json</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;rooms&quot;: [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        &quot;room_id&quot;: 5,</span>
+<span class="sd">                        &quot;name&quot;: &quot;Main Conference Room&quot;,</span>
+<span class="sd">                        &quot;capacity&quot;: 30,</span>
+<span class="sd">                        &quot;location&quot;: &quot;East Hall&quot;,</span>
+<span class="sd">                        &quot;status&quot;: &quot;available&quot;,</span>
+<span class="sd">                        &quot;equipment&quot;: [</span>
+<span class="sd">                            {&quot;type&quot;: &quot;Projector&quot;, &quot;quantity&quot;: 1},</span>
+<span class="sd">                            {&quot;type&quot;: &quot;Whiteboard&quot;, &quot;quantity&quot;: 2}</span>
+<span class="sd">                        ]</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">get_jwt</span><span class="p">()</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span>
+
+    <span class="n">authorized_Roles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;facility_manager&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;auditor&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">authorized_Roles</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;User not authorized to view rooms.&quot;</span><span class="p">})</span>
+    
+    <span class="c1"># Extract filters from request</span>
+    <span class="n">capacity</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity&quot;</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+    <span class="n">equipment</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;equipment&quot;</span><span class="p">)</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">)</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_db_connection</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="c1"># all rooms</span>
+        <span class="n">filt_request</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT r.room_id, r.name, r.capacity, r.location, r.status</span>
+<span class="s2">            FROM rooms r &quot;&quot;&quot;</span>
+        <span class="c1"># list to keep track of filters</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># bool value to keep track of WHERE and AND </span>
+        <span class="n">bool_filter</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># equipment filter </span>
+        <span class="k">if</span> <span class="n">equipment</span><span class="p">:</span>
+            <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">equipment</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="n">filt_request</span> <span class="o">=</span> <span class="n">filt_request</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            JOIN room_equipment re ON re.room_id = r.room_id </span>
+<span class="s2">            JOIN equipment e ON e.equi_id = re.equi_id</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="n">filt_request</span> <span class="o">+=</span> <span class="s2">&quot; WHERE e.type = ?&quot;</span>
+            <span class="n">bool_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># capacity filter</span>
+        <span class="k">if</span> <span class="n">capacity</span><span class="p">:</span>
+            <span class="n">filt_request</span> <span class="o">+=</span> <span class="s2">&quot; AND r.capacity &gt;=?&quot;</span> <span class="k">if</span> <span class="n">bool_filter</span> <span class="k">else</span> <span class="s2">&quot; WHERE r.capacity &gt;=?&quot;</span> 
+            <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">capacity</span><span class="p">))</span>
+            <span class="n">bool_filter</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># location filter </span>
+        <span class="k">if</span> <span class="n">location</span><span class="p">:</span>
+            <span class="n">filt_request</span> <span class="o">+=</span> <span class="s2">&quot; AND r.location LIKE?&quot;</span> <span class="k">if</span> <span class="n">bool_filter</span> <span class="k">else</span>  <span class="s2">&quot; WHERE r.location LIKE ?&quot;</span>
+            <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;%</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+            <span class="n">bool_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># status filter </span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="n">filt_request</span> <span class="o">+=</span> <span class="s2">&quot; AND r.status =?&quot;</span> <span class="k">if</span> <span class="n">bool_filter</span> <span class="k">else</span>  <span class="s2">&quot; WHERE r.status = ?&quot;</span>
+            <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">status</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="n">bool_filter</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># Execute full query to return the rooms</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">filt_request</span><span class="p">,</span> <span class="n">filters</span><span class="p">)</span>
+        <span class="n">matched_rooms</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="c1"># Fetch the equipment list of each matched room</span>
+        <span class="n">final_rooms_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">room</span> <span class="ow">in</span> <span class="n">matched_rooms</span><span class="p">:</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                SELECT e.type, re.quantity</span>
+<span class="sd">                FROM equipment e</span>
+<span class="sd">                JOIN room_equipment re ON re.equi_id = e.equi_id</span>
+<span class="sd">                WHERE re.room_id = ?</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">room</span><span class="p">[</span><span class="s2">&quot;room_id&quot;</span><span class="p">],)</span>
+            <span class="p">)</span>
+            <span class="n">equipment_list_rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="n">equipment_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">equipment_list_rows</span><span class="p">:</span>
+                <span class="n">equipment_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="s2">&quot;quantity&quot;</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span>
+                <span class="p">})</span>
+            <span class="n">final_rooms_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+
+            <span class="s2">&quot;room_id&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;room_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;capacity&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;capacity&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">room</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;equipment&quot;</span><span class="p">:</span> <span class="n">equipment_list</span>
+            <span class="p">})</span>
+    <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Database error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;rooms&quot;</span><span class="p">:</span> <span class="n">final_rooms_list</span><span class="p">}),</span> <span class="mi">200</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_SECRET_KEY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;secret_key&quot;</span>   
+    <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_ACCESS_TOKEN_EXPIRES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># The token expires in one hour</span>
+    <span class="n">jwt</span> <span class="o">=</span> <span class="n">JWTManager</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">users_bp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">app</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">5002</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasmine Sabra.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

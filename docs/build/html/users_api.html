@@ -1,0 +1,908 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users Service Documentation &mdash; SmartMeetingRoom 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Rooms Service Documentation" href="rooms_api.html" />
+    <link rel="prev" title="SmartMeetingRoom documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SmartMeetingRoom
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Users Service Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.assign_change_role"><code class="docutils literal notranslate"><span class="pre">assign_change_role()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.delete_my_profile"><code class="docutils literal notranslate"><span class="pre">delete_my_profile()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.delete_user"><code class="docutils literal notranslate"><span class="pre">delete_user()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.get_all_users"><code class="docutils literal notranslate"><span class="pre">get_all_users()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.get_my_profile"><code class="docutils literal notranslate"><span class="pre">get_my_profile()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.get_user_by_username"><code class="docutils literal notranslate"><span class="pre">get_user_by_username()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.health"><code class="docutils literal notranslate"><span class="pre">health()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.init_admin"><code class="docutils literal notranslate"><span class="pre">init_admin()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.init_roles"><code class="docutils literal notranslate"><span class="pre">init_roles()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.login_user"><code class="docutils literal notranslate"><span class="pre">login_user()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.register_user"><code class="docutils literal notranslate"><span class="pre">register_user()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.reset_password"><code class="docutils literal notranslate"><span class="pre">reset_password()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#services.users_service.app.update_my_profile"><code class="docutils literal notranslate"><span class="pre">update_my_profile()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rooms_api.html">Rooms Service Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SmartMeetingRoom</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Users Service Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/users_api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-services.users_service.app">
+<span id="users-service-documentation"></span><h1>Users Service Documentation<a class="headerlink" href="#module-services.users_service.app" title="Link to this heading"></a></h1>
+<dl>
+<dt><strong>Users Service - API Module</strong></dt><dd><p>This module implements the Users microservice of the system. It manages user
+registration, authentication, authorization, role assignment, profile
+management, and administrative actions. The endpoints are exposed through a
+Flask Blueprint (<code class="docutils literal notranslate"><span class="pre">users_bp</span></code>) and integrated into the main application via
+<code class="docutils literal notranslate"><span class="pre">create_app()</span></code>.</p>
+</dd>
+<dt><strong>Main Features</strong></dt><dd><ul class="simple">
+<li><p>User registration with hashed passwords.</p></li>
+<li><p>JWT-based authentication and token generation.</p></li>
+<li><p>Role-based access control (Admin, User, Auditor, Facility Manager,</p></li>
+</ul>
+</dd>
+<dt>Moderator, Service Account).</dt><dd><ul class="simple">
+<li><p>Profile viewing, updating, and deletion.</p></li>
+<li><dl class="simple">
+<dt>Administrative operations:</dt><dd><ul>
+<li><p>Initialize system roles.</p></li>
+<li><p>Create the first admin account.</p></li>
+<li><p>Assign or change roles for users.</p></li>
+<li><p>Reset user passwords.</p></li>
+<li><p>Delete user accounts.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Internal health check endpoint.</p></li>
+</ul>
+</dd>
+<dt><strong>Structure</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">users_bp</span></code>: Flask Blueprint containing all Users API routes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_db_connection()</span></code>: Utility to create SQLite database connections with</p></li>
+</ul>
+<p>foreign key enforcement enabled.
+- <code class="docutils literal notranslate"><span class="pre">create_app()</span></code>: Application factory configuring JWT and registering the
+users blueprint.</p>
+</dd>
+<dt><strong>Database Tables Used</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">users</span></code> - Stores user accounts and hashed passwords.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">roles</span></code> - Defines available system roles.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bookings</span></code> - Used when deleting users to cancel active bookings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reviews</span></code> - Used when deleting users to remove authored reviews.</p></li>
+</ul>
+</dd>
+<dt><strong>Authentication</strong></dt><dd><p>Most endpoints require a valid JWT access token. Required roles vary per
+operation (e.g., Admin-only, Admin/Auditor, or Any Authenticated User).</p>
+<p>This module is consumed by Sphinx to generate HTML documentation for all Users
+service endpoints.</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.assign_change_role">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">assign_change_role</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#assign_change_role"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.assign_change_role" title="Link to this definition"></a></dt>
+<dd><p><strong>Assign or change a user’s role (admin-only API).</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/&lt;user_id&gt;/role</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">PUT</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> Admin only</p></li>
+</ul>
+<p>This endpoint allows the system admin to assign a role or change the role of an existing user.
+The admin provided a role from the ones already listed in the <code class="docutils literal notranslate"><span class="pre">roles</span></code> table im the database.
+After verification of both the existence of the user and the role, teh user’s role field is updated
+in the database,</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>role</strong> (<em>str</em>) - The new user’s role to be assigned (should exist in the <code class="docutils literal notranslate"><span class="pre">roles</span></code> table)</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the current user’s role from the JWT claims.</p></li>
+<li><p>Ensures the requester has the <code class="docutils literal notranslate"><span class="pre">admin</span></code> role.</p></li>
+<li><p>Validates that the JSON body contains a <code class="docutils literal notranslate"><span class="pre">role</span></code> field.</p></li>
+<li><p>Validates the existence of the target user.</p></li>
+<li><p>Validates the existence of the new role in the database.</p></li>
+<li><p>Finds the ID of the new role in the <code class="docutils literal notranslate"><span class="pre">roles</span></code>.</p></li>
+<li><p>Updates the user’s <code class="docutils literal notranslate"><span class="pre">role_id</span></code> with the corresponding role ID.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - User role updated successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing role field or invalid role name.</p></li>
+<li><p><strong>403 Forbidden</strong> - Non-admin users cannot modify roles.</p></li>
+<li><p><strong>404 Not Found</strong> - Target user not found.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility_manager&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Role updated successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;new_role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility_manager&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.delete_my_profile">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">delete_my_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#delete_my_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.delete_my_profile" title="Link to this definition"></a></dt>
+<dd><p><strong>Delete the authenticated user’s account.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/delete</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">DELETE</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+</ul>
+<p>This endpoint allows an authenticated user (except service accounts) to permanently
+delete their account after password confirmation to avoid non-user or accidental requests.
+Upon deletion, the user’s active bookings are automatically cancelled and
+bookings reviews are removed.</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>password</strong> (<em>str</em>) - The user’s current password.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts <code class="docutils literal notranslate"><span class="pre">user_id</span></code> from the identity and role from the claim of the JWT token.</p></li>
+<li><p>Reject deletion requests from users with the role <code class="docutils literal notranslate"><span class="pre">service_account</span></code>.</p></li>
+<li><p>Validates that a password is provided for confirmation.</p></li>
+<li><p>Fetches the user’s stored password hash using <code class="docutils literal notranslate"><span class="pre">werkzeug.security.check_password_hash</span></code>.</p></li>
+<li><p>Verifies the provided password by comapring it to stored user’s password.</p></li>
+<li><p>Cancels all user’s active (confirmed and pending) bookings.</p></li>
+<li><p>Deletes all the user’s bookings reviews.</p></li>
+<li><p>Removes the user record from the database.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Account deleted; active bookings cancelled; reviews removed.</p></li>
+<li><p><strong>400 Bad Request</strong> - Password confirmation not provided.</p></li>
+<li><p><strong>401 Unauthorized</strong> - Incorrect password.</p></li>
+<li><p><strong>403 Forbidden</strong> - Service accounts cannot delete themselves.</p></li>
+<li><p><strong>404 Not Found</strong> - User not found.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_123&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Account deleted successfully.</span>
+<span class="s2">    All active bookings were cancelled, and all reviews were deleted.&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user_id_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.delete_user">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">delete_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#delete_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.delete_user" title="Link to this definition"></a></dt>
+<dd><p><strong>Delete a user’s account by ID (admin only API).</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/&lt;user_id&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">DELETE</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> Admin only</p></li>
+</ul>
+<p>This endpoint premits the system administrator to delete a user account from the
+system. It cancels all user’s active bookings (confimed and pending) and
+delete the user’s previous bookings reviews. Finally, it deletes the user’s account by
+removing it from the users table in the database.
+Administrators are not allowed to delete their own accounts.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the admin’s ID and role from the JWT token.</p></li>
+<li><p>Ensures that only admins are granted access to this endpoint.</p></li>
+<li><p>Blocks admins from deleting their own accounts.</p></li>
+<li><p>Confirms the existence of the intended user in the database.</p></li>
+<li><p>Cancels all user’s active(<code class="docutils literal notranslate"><span class="pre">confirmed</span></code>, and <code class="docutils literal notranslate"><span class="pre">pending</span></code>) bookings.</p></li>
+<li><p>Removes the user record from the <code class="docutils literal notranslate"><span class="pre">users</span></code> table in the database.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - User deleted successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - Admin attempted to delete their own account.</p></li>
+<li><p><strong>403 Forbidden</strong> - Non-admin users cannot delete accounts.</p></li>
+<li><p><strong>404 Not Found</strong> - User does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;User deleted successfully.&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user_id_deleted&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.get_all_users">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">get_all_users</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#get_all_users"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.get_all_users" title="Link to this definition"></a></dt>
+<dd><p><strong>Retrieve the list of all users (admin and auditor only).</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">auditor</span></code></p></li>
+</ul>
+<p>This endpoint allows both the system administrator and the auditors to get all user information
+in a structured list. It rejects any other types of users from requesting users’ information.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the user’s role from the JWT claims.</p></li>
+<li><p>Ensures that only <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">auditor</span></code> roles can access the “get all users” endpoint.</p></li>
+<li><p>Retrieves all users from the database, ordered by their <code class="docutils literal notranslate"><span class="pre">user_id</span></code>.</p></li>
+<li><p>Joins the <code class="docutils literal notranslate"><span class="pre">users</span></code> and <code class="docutils literal notranslate"><span class="pre">roles</span></code> tables on the <code class="docutils literal notranslate"><span class="pre">role_id</span></code>  to retrieve the user role.</p></li>
+<li><p>Returns a list of user objects inclusing their IDs, usernames, emails, names, and roles.</p></li>
+</ul>
+</dd>
+<dt><strong>Response Fields (per user):</strong></dt><dd><ul class="simple">
+<li><p><strong>user_id</strong> (<em>int</em>)</p></li>
+<li><p><strong>username</strong> (<em>str</em>)</p></li>
+<li><p><strong>email</strong> (<em>str</em>)</p></li>
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>role</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Returns a list of all users.</p></li>
+<li><p><strong>403 Forbidden</strong> - User is not authorized to read all accounts.</p></li>
+<li><p><strong>500 Internal Server Error</strong>- Database query failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;users&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin@users.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;System Admin&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;Aya Sabra&quot;</span>
+<span class="w">            </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">                            </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;imane_ghalayini&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;imane_ghalayini@users.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;Imane Ghalayini&quot;</span>
+<span class="w">            </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;facility_manager&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.get_my_profile">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">get_my_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#get_my_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.get_my_profile" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the authenticated user’s profile.</p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/me</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+</ul>
+<p>This endpoint extracts the user ID from the JWT token identity, and ensures the corresponsing
+user exists in the database. It then fetches the user information and returns their profile details
+including ID, name, username, email, and role.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts <code class="docutils literal notranslate"><span class="pre">user_id</span></code> and claims from the JWT token.</p></li>
+<li><p>Fetches the corresponding user from the database.</p></li>
+<li><p>Returns the user’s profile information.</p></li>
+<li><p>Handles the case where the user record no longer exists.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Responses:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>200 OK</strong> - Profile successfully retrieved.</p></li>
+<li><p><strong>404 Not Found</strong> - User does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Example Successful Response</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.get_user_by_username">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">get_user_by_username</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#get_user_by_username"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.get_user_by_username" title="Link to this definition"></a></dt>
+<dd><p><strong>Retrieve a user’s profile by username (admin and auditor only).</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/username/&lt;username&gt;</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> <code class="docutils literal notranslate"><span class="pre">admin</span></code> or <code class="docutils literal notranslate"><span class="pre">auditor</span></code></p></li>
+</ul>
+<p>This endpoint allows both the system administrator and the auditors to
+retrieve a user’s profile by providing their username.  It rejects requests from
+users with any other roles.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the requester’s role from the JWT token.</p></li>
+<li><p>Ensures that only <code class="docutils literal notranslate"><span class="pre">admin</span></code> and <code class="docutils literal notranslate"><span class="pre">auditor</span></code> users have access.</p></li>
+<li><p>Finds the user by the provided username if they</p></li>
+<li><p>Joins the users and roles table on the <code class="docutils literal notranslate"><span class="pre">role_id</span></code> to retrieve the user role.</p></li>
+<li><p>Returns the user’s profile details</p></li>
+</ul>
+</dd>
+<dt><strong>Response Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>user_id</strong> (<em>int</em>)</p></li>
+<li><p><strong>username</strong> (<em>str</em>)</p></li>
+<li><p><strong>email</strong> (<em>str</em>)</p></li>
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>role</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - User profile successfully retrieved.</p></li>
+<li><p><strong>403 Forbidden</strong> - Requester does not have permission.</p></li>
+<li><p><strong>404 Not Found</strong> - No user exists with the given username.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database query failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.health">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">health</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#health"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.health" title="Link to this definition"></a></dt>
+<dd><p><strong>Service health check endpoint.</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/health</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">GET</span></code></p></li>
+<li><p><strong>Authentication:</strong> None</p></li>
+</ul>
+<p>This endpoint is used to verify that the Users Service is running correctly and
+that the database connection is functioning. It performs a simple connectivity
+test by opening and closing a database connection.</p>
+<p>A successful response indicates that both the service and the database are
+operational.</p>
+<dl class="simple">
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Attempts to establish a connection to the SQLite database.</p></li>
+<li><p>Closes the connection if successful.</p></li>
+<li><p>Returns a JSON object with service and database status.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Service is running and database connection succeeded.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database connection failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;service&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;users&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;db&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;connected&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Error Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;service&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;users&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;db_error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unable to open database file&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.init_admin">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">init_admin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#init_admin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.init_admin" title="Link to this definition"></a></dt>
+<dd><p>Initialize the system’s primary administrator account.</p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/admin/init</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> None</p></li>
+</ul>
+<p>This endpoint is used to create the first administrator account in the system.
+It should be executed only once, typically during system deployment.
+If an admin already exists, the request is rejected to prevent multiple initial
+admin accounts from being created.</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>username</strong> (<em>str</em>) – Admin’s username (must be unique).</p></li>
+<li><p><strong>email</strong> (<em>str</em>) – Admin’s email address (must be unique).</p></li>
+<li><p><strong>password</strong> (<em>str</em>) – Raw password (stored securely as a hash).</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Full name of the administrator.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Validates the presence of all required fields.</p></li>
+<li><p>Checks whether an admin account already exists.</p></li>
+<li><p>Retrieves the role ID for the <code class="docutils literal notranslate"><span class="pre">admin</span></code> role.</p></li>
+<li><p>Ensures the username and email are unique across users.</p></li>
+<li><p>Hashes the password using <code class="docutils literal notranslate"><span class="pre">generate_password_hash</span></code>.</p></li>
+<li><p>Inserts the new admin user into the database.</p></li>
+<li><p>Returns the created admin’s profile information.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - Admin successfully initialized.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing required field(s).</p></li>
+<li><p><strong>403 Forbidden</strong> - An admin already exists.</p></li>
+<li><p><strong>409 Conflict</strong> - Username or email already exists.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error or missing admin role.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sysadmin&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin@example.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;securePass123&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;System Administrator&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Admin user created successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sysadmin&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin@example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;System Administrator&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.init_roles">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">init_roles</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#init_roles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.init_roles" title="Link to this definition"></a></dt>
+<dd><p>Initialize default system roles.</p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/roles/init</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> None</p></li>
+</ul>
+<p>This endpoint inserts the predefined system roles into the <code class="docutils literal notranslate"><span class="pre">roles</span></code> table.
+If a role already exists, it is ignored to prevent duplication.
+This endpoint is typically called once during system setup or deployment.</p>
+<dl class="simple">
+<dt><strong>Roles Created:</strong></dt><dd><ul class="simple">
+<li><p><strong>admin</strong> - System administrator</p></li>
+<li><p><strong>user</strong> - Regular user</p></li>
+<li><p><strong>facility_manager</strong> - Manages rooms and equipment</p></li>
+<li><p><strong>moderator</strong> - Handles room reviews</p></li>
+<li><p><strong>auditor</strong> - Read-only access for audits/logs</p></li>
+<li><p><strong>service_account</strong> - Restricted non-human service-level account</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Opens a database connection.</p></li>
+<li><p>Iterates through the predefined roles list.</p></li>
+<li><p>Uses <code class="docutils literal notranslate"><span class="pre">INSERT</span> <span class="pre">OR</span> <span class="pre">IGNORE</span></code> to avoid duplicate role creation.</p></li>
+<li><p>Commits changes and closes the database connection.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - Roles successfully initialized (or already existed).</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database insert operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Roles initialized (or already existed).&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.login_user">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">login_user</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#login_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.login_user" title="Link to this definition"></a></dt>
+<dd><p><strong>Endpoint to authenticate an existing user and return a JWT access token</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/login</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> None</p></li>
+</ul>
+<p>This endpoint validates the input of all required fields (username and password), verifies the existence of user
+by username and validates the password. It then fetches the user role to deny service account logins,
+and finally issues a JWT access token containing the user’s ID, and claims (username and role).</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>username</strong> (<em>str</em>) - User’s unique username.</p></li>
+<li><p><strong>password</strong> (<em>str</em>) - User’s raw password.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Validates the input of <code class="docutils literal notranslate"><span class="pre">username</span></code> and <code class="docutils literal notranslate"><span class="pre">password</span></code>.</p></li>
+<li><p>Fetches the user by username to verify existence.</p></li>
+<li><p>Validate the password using <code class="docutils literal notranslate"><span class="pre">werkzeug.security.check_password_hash</span></code>.</p></li>
+<li><p>Fetches the user’s role from the database to determine authorities.</p></li>
+<li><p>Rejects <code class="docutils literal notranslate"><span class="pre">service_account</span></code> login requests.</p></li>
+<li><dl class="simple">
+<dt>Generates a JWT token including:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_id</span></code> (JWT identity)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">username</span></code> (claim)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">role</span></code> (claim)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong>- Login successful; JWT token returned.</p></li>
+<li><p><strong>400 Bad Request</strong> -  Username or password fields are missing.</p></li>
+<li><p><strong>401 Unauthorized</strong> - Invalid username or password.</p></li>
+<li><p><strong>403 Forbidden</strong>- <code class="docutils literal notranslate"><span class="pre">service_account</span></code> role is not allowed to log in.</p></li>
+<li><p><strong>500 Internal Server Error</strong> -  Database operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya123&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Example Successful Response:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Login successful&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;eyJhb...&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.register_user">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">register_user</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#register_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.register_user" title="Link to this definition"></a></dt>
+<dd><p><strong>Endpoint to register a new user</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/register</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">POST</span></code></p></li>
+<li><p><strong>Authentication:</strong> None</p></li>
+</ul>
+<p>This endpoint validates required fields (username, name, email, password). It then verifies the uniqueness of
+username and email, hashes the password, and assigns a default regular user role.
+It finally inserts the user’s details under the users table in the database.</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>username</strong> (<em>str</em>) - Unique username.</p></li>
+<li><p><strong>email</strong> (<em>str</em>) - Unique email address.</p></li>
+<li><p><strong>password</strong> (<em>str</em>) - Raw password (stored as a hash).</p></li>
+<li><p><strong>name</strong> (<em>str</em>) - User’s full name.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Validates required fields.</p></li>
+<li><p>Strips whitespace from textual fields</p></li>
+<li><p>Verifies uniqueness of <code class="docutils literal notranslate"><span class="pre">username</span></code> and <code class="docutils literal notranslate"><span class="pre">email</span></code></p></li>
+<li><p>Hashes password using <code class="docutils literal notranslate"><span class="pre">werkzeug.security</span></code></p></li>
+<li><p>Assigns a default role: <code class="docutils literal notranslate"><span class="pre">user</span></code></p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>201 Created</strong> - User successfully registered.</p></li>
+<li><p><strong>400 Bad Request</strong> - One or more required fields are missing.</p></li>
+<li><p><strong>409 Conflict</strong> -  Username or email already exists.</p></li>
+<li><p><strong>500 Internal Server Error</strong> -  Database operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya123&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Example Successful Response:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;User registered successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ayasabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.reset_password">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">reset_password</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#reset_password"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.reset_password" title="Link to this definition"></a></dt>
+<dd><p><strong>Reset a user’s password (admin only).</strong></p>
+<ul class="simple">
+<li><p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/&lt;user_id&gt;/reset-password</span></code></p></li>
+<li><p><strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">PUT</span></code></p></li>
+<li><p><strong>Authentication:</strong> JWT required</p></li>
+<li><p><strong>Authorization:</strong> Admin only</p></li>
+</ul>
+<p>This endpoint allows the system administrator to reset the password of any user in the
+system. The admin should provide a new password in the request body. The new password
+is then and hashed and assigned to the user.</p>
+<dl class="simple">
+<dt><strong>Request JSON Fields:</strong></dt><dd><ul class="simple">
+<li><p><strong>password</strong> (<em>str</em>) - The new password to be assigned to the user.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts the requester’s role from the JWT token.</p></li>
+<li><p>Ensures that only users with the <code class="docutils literal notranslate"><span class="pre">admin</span></code> role have access to this endpoint.</p></li>
+<li><p>Validates that a new password is provided in the request body.</p></li>
+<li><p>Validates the existence of teh target user in the database.</p></li>
+<li><p>Hashes the new password using <code class="docutils literal notranslate"><span class="pre">werkzeug.security.generate_password_hash</span></code>.</p></li>
+<li><p>Replaces the user’s password in the <code class="docutils literal notranslate"><span class="pre">users</span></code> table with the new password.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Password reset successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - Missing new password field.</p></li>
+<li><p><strong>403 Forbidden</strong> - Non-admin users cannot reset passwords.</p></li>
+<li><p><strong>404 Not Found</strong> - Target user does not exist.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database operation failed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;reset_012&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>Example Successful Response:</strong></p>
+<blockquote>
+<div><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Password reset successfully.&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="services.users_service.app.update_my_profile">
+<span class="sig-prename descclassname"><span class="pre">services.users_service.app.</span></span><span class="sig-name descname"><span class="pre">update_my_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/services/users_service/app.html#update_my_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#services.users_service.app.update_my_profile" title="Link to this definition"></a></dt>
+<dd><p>Update the authenticated user’s profile.</p>
+<p><strong>URL:</strong> <code class="docutils literal notranslate"><span class="pre">/users/me</span></code>
+<strong>Method:</strong> <code class="docutils literal notranslate"><span class="pre">PUT</span></code>
+<strong>Authentication:</strong> JWT required</p>
+<p>This endpoint allows an authenticated user (except service accounts) to update their
+own profile information. The final profile information reflect the new values for the
+fields provided in the request body and the old values for the other fields.
+Role change requests will be ignored by the system.</p>
+<dl class="simple">
+<dt><strong>Allowed but optional fields to be updated:</strong></dt><dd><ul class="simple">
+<li><p><strong>username</strong> (<em>str</em>) - New username (must be unique).</p></li>
+<li><p><strong>email</strong> (<em>str</em>) - New email address (must be unique).</p></li>
+<li><p><strong>password</strong> (<em>str</em>) -  New password (stored as a hash).</p></li>
+<li><p><strong>name</strong> (<em>str</em>) - Updated full name.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior:</strong></dt><dd><ul class="simple">
+<li><p>Extracts <code class="docutils literal notranslate"><span class="pre">user_id</span></code> from the JWT token.</p></li>
+<li><p>Rejects profile updates for users with role <code class="docutils literal notranslate"><span class="pre">service_account</span></code>.</p></li>
+<li><p>Fetches the current user information from the database.</p></li>
+<li><p>Ensures at least one field is provided in the JSON body.</p></li>
+<li><p>Trims whitespace from provided fields.</p></li>
+<li><p>Validates the uniqueness of the new <code class="docutils literal notranslate"><span class="pre">username</span></code> and <code class="docutils literal notranslate"><span class="pre">email</span></code>.</p></li>
+<li><p>Hashes the password using <code class="docutils literal notranslate"><span class="pre">werkzeug.security.generate_password_hash</span></code>.</p></li>
+<li><p>Updates the fields provided in the request only.</p></li>
+<li><p>Ignores user role field updates.</p></li>
+</ul>
+</dd>
+<dt><strong>Responses:</strong></dt><dd><ul class="simple">
+<li><p><strong>200 OK</strong> - Profile updated successfully.</p></li>
+<li><p><strong>400 Bad Request</strong> - No fields were provided to update.</p></li>
+<li><p><strong>403 Forbidden</strong> - Service accounts cannot update their profiles.</p></li>
+<li><p><strong>404 Not Found</strong> - User does not exist.</p></li>
+<li><p><strong>409 Conflict</strong> - Username or email already exists.</p></li>
+<li><p><strong>500 Internal Server Error</strong> - Database error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Example Request:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_123&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Example Successful Response:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Profile updated successfully&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aya_sabra@users.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aya Sabra&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="SmartMeetingRoom documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rooms_api.html" class="btn btn-neutral float-right" title="Rooms Service Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasmine Sabra.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
