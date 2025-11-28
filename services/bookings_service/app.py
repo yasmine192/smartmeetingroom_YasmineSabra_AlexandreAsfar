@@ -4,7 +4,8 @@ import os
 
 # Connecting to the database
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "database", "project.db")
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "database", "project.db")
+DB_PATH = os.environ.get("DB_PATH", DEFAULT_DB_PATH)
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

@@ -53,7 +53,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 
 # Connecting to the database
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "database", "project.db")
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "database", "project.db")
+DB_PATH = os.environ.get("DB_PATH", DEFAULT_DB_PATH)
+
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -1110,7 +1112,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = "secret_key"   
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1) # The token expires in one hour
     jwt = JWTManager(app)
-    app.register_blueprint(users_bp)
+    app.register_blueprint(rooms_bp)
     return app
 
 if __name__ == "__main__":
