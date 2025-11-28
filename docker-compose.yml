@@ -1,0 +1,63 @@
+services:
+  database:
+    image: alpine:latest
+    container_name: sqlite_storage
+    volumes:
+      - ./database:/data
+    command: [ "sh", "-c", "mkdir -p /data && sleep infinity" ]
+
+  users_service:
+    build: ./services/users_service
+    container_name: users_service
+    ports:
+      - "5001:5001"
+    environment:
+      - DB_PATH=/data/project.db
+      - FLASK_APP=services.users_service.app
+    volumes:
+      - ./database:/data
+    depends_on:
+      - database
+
+  rooms_service:
+    build: ./services/rooms_service
+    container_name: rooms_service
+    ports:
+      - "5002:5002"
+    environment:
+      - DB_PATH=/data/project.db
+      - FLASK_APP=services.rooms_service.app
+    volumes:
+      - ./database:/data
+    depends_on:
+      - database
+      - users_service
+  # bookings_service:
+  #   build: ./services/bookings_service
+  #   container_name: bookings_service
+  #   ports:
+  #     - "5003:5003"
+  #   environment:
+  #     - DB_PATH=/data/project.db
+  #     - FLASK_APP=services.bookings_service.app
+  #   volumes:
+  #     - ./database:/data
+  #   depends_on:
+  #     - database
+  #     - users_service
+  #     - rooms_service
+
+  # reviews_service:
+  #   build: ./services/reviews_service
+  #   container_name: reviews_service
+  #   ports:
+  #     - "5004:5004"
+  #   environment:
+  #     - DB_PATH=/data/project.db
+  #     - FLASK_APP=services.reviews_service.app
+  #   volumes:
+  #     - ./database:/data
+  #   depends_on:
+  #     - database
+  #     - users_service
+  #     - rooms_service

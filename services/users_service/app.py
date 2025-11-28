@@ -40,17 +40,21 @@ Moderator, Service Account).
     This module is consumed by Sphinx to generate HTML documentation for all Users
     service endpoints.
 """
-
+import pybreaker
 from flask import Flask, jsonify, request
 from flask import Blueprint
 import requests
 import sqlite3
 import os
+from .error_handlers import register_error_handlers
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token
 from datetime import timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 
 
 # Connecting to the database 
@@ -64,6 +68,20 @@ def get_db_connection():
     return conn # connection object to run queries
 
 users_bp = Blueprint("users_bp", __name__)
+@users_bp.route("/version", methods=["GET"])
+def get_version():
+    return {"service": "users", "version": "v1"}, 200
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["100 per minute"],
+    storage_uri="memory://"
+)
+
+breaker = pybreaker.CircuitBreaker(
+    fail_max=3,          # 3 consecutive failures triggers OPEN state
+    reset_timeout=10     # after 10 seconds breaker goes HALF-OPEN
+)
 
 ### API to check database connection
 @users_bp.route("/health", methods=["GET"])
@@ -321,6 +339,7 @@ def init_admin():
 
 ### API to post a new user to the users table in database
 @users_bp.route("/users/register", methods= ["POST"])
+@limiter.limit("10 per hour")
 def register_user():
     """ 
     **Endpoint to register a new user**
@@ -458,6 +477,7 @@ def register_user():
 
 ### API to login an existing user
 @users_bp.route("/users/login", methods= ["POST"])
+@limiter.limit("5 per minute")
 def login_user():
     """
     **Endpoint to authenticate an existing user and return a JWT access token**
@@ -1048,6 +1068,7 @@ def assign_change_role(user_id):
 
 ### Admin only API: get all users
 @users_bp.route("/users", methods= ["GET"])
+@limiter.limit("20 per minute")
 @jwt_required()
 
 def get_all_users():
@@ -1431,15 +1452,62 @@ def delete_user(user_id):
         "user_id_deleted": user_id
     }), 200
 
+### Cicuit breaker 
+@users_bp.route("/rooms/check", methods=["GET"])
+def check_rooms_service():
+    """
+    Test endpoint using Circuit Breaker to check Rooms Service availability.
+    - If Rooms Service fails 3 times → breaker opens (fast-fail mode)
+    - After 10 seconds → breaker half-open
+    - If next request succeeds → breaker closes again
+    """
+    try:
+        response = breaker.call(
+            requests.get,
+            "http://127.0.0.1:5002/rooms/health",
+            timeout=2
+        )
+
+        if response.status_code == 200:
+            return jsonify({
+                "service": "users",
+                "rooms_service": "reachable",
+                "rooms_response": response.json()
+            }), 200
+
+        return jsonify({
+            "service": "users",
+            "rooms_service": "unhealthy",
+            "status": response.status_code
+        }), 500
+
+    except pybreaker.CircuitBreakerError:
+        # The breaker is OPEN: fast failure
+        return jsonify({
+            "service": "users",
+            "rooms_service": "circuit_open",
+            "message": "Circuit breaker is OPEN — too many recent failures."
+        }), 503
+
+    except Exception as e:
+        return jsonify({
+            "service": "users",
+            "rooms_service": "down",
+            "error": str(e)
+        }), 500
 
 
     
 def create_app():
     app = Flask(__name__)
+
+    limiter.init_app(app)
     app.config["JWT_SECRET_KEY"] = "secret_key"   
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1) # The token expires in one hour
     jwt = JWTManager(app)
     app.register_blueprint(users_bp)
+    register_error_handlers(app)
+
     return app
 
 if __name__ == "__main__":
