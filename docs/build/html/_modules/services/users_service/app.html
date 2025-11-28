@@ -112,17 +112,21 @@
 <span class="sd">    This module is consumed by Sphinx to generate HTML documentation for all Users</span>
 <span class="sd">    service endpoints.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
+<span class="kn">import</span><span class="w"> </span><span class="nn">pybreaker</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.error_handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_error_handlers</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_password_hash</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">werkzeug.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_password_hash</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTManager</span><span class="p">,</span> <span class="n">create_access_token</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask_jwt_extended</span><span class="w"> </span><span class="kn">import</span> <span class="n">jwt_required</span><span class="p">,</span> <span class="n">get_jwt_identity</span><span class="p">,</span> <span class="n">get_jwt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_limiter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Limiter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_limiter.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_remote_address</span>
+
 
 
 <span class="c1"># Connecting to the database </span>
@@ -136,6 +140,20 @@
     <span class="k">return</span> <span class="n">conn</span> <span class="c1"># connection object to run queries</span>
 
 <span class="n">users_bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s2">&quot;users_bp&quot;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/version&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;v1&quot;</span><span class="p">},</span> <span class="mi">200</span>
+
+<span class="n">limiter</span> <span class="o">=</span> <span class="n">Limiter</span><span class="p">(</span>
+    <span class="n">key_func</span><span class="o">=</span><span class="n">get_remote_address</span><span class="p">,</span>
+    <span class="n">default_limits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;100 per minute&quot;</span><span class="p">],</span>
+    <span class="n">storage_uri</span><span class="o">=</span><span class="s2">&quot;memory://&quot;</span>
+<span class="p">)</span>
+
+<span class="n">breaker</span> <span class="o">=</span> <span class="n">pybreaker</span><span class="o">.</span><span class="n">CircuitBreaker</span><span class="p">(</span>
+    <span class="n">fail_max</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>          <span class="c1"># 3 consecutive failures triggers OPEN state</span>
+    <span class="n">reset_timeout</span><span class="o">=</span><span class="mi">10</span>     <span class="c1"># after 10 seconds breaker goes HALF-OPEN</span>
+<span class="p">)</span>
 
 <span class="c1">### API to check database connection</span>
 <div class="viewcode-block" id="health">
@@ -404,6 +422,7 @@
 <div class="viewcode-block" id="register_user">
 <a class="viewcode-back" href="../../../users_api.html#services.users_service.app.register_user">[docs]</a>
 <span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/register&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@limiter</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="s2">&quot;5 per hour&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">register_user</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
 <span class="sd">    **Endpoint to register a new user**</span>
@@ -544,6 +563,7 @@
 <div class="viewcode-block" id="login_user">
 <a class="viewcode-back" href="../../../users_api.html#services.users_service.app.login_user">[docs]</a>
 <span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users/login&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="nd">@limiter</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="s2">&quot;5 per minute&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">login_user</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    **Endpoint to authenticate an existing user and return a JWT access token**</span>
@@ -1089,7 +1109,7 @@
 
     <span class="c1"># check if the user is authorized (admins only)</span>
     <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;admin&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Only admins are authorized to check users&#39; related information.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Only admins are authorized to modify users&#39; related information.&quot;</span><span class="p">}),</span> <span class="mi">403</span>
     
     <span class="c1"># Extract new role</span>
     <span class="n">data</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -1149,6 +1169,7 @@
 <div class="viewcode-block" id="get_all_users">
 <a class="viewcode-back" href="../../../users_api.html#services.users_service.app.get_all_users">[docs]</a>
 <span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/users&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@limiter</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="s2">&quot;20 per minute&quot;</span><span class="p">)</span>
 <span class="nd">@jwt_required</span><span class="p">()</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_all_users</span><span class="p">():</span>
@@ -1542,15 +1563,65 @@
     <span class="p">}),</span> <span class="mi">200</span></div>
 
 
+<span class="c1">### Cicuit breaker </span>
+<div class="viewcode-block" id="check_rooms_service">
+<a class="viewcode-back" href="../../../users_api.html#services.users_service.app.check_rooms_service">[docs]</a>
+<span class="nd">@users_bp</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/rooms/check&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_rooms_service</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Test endpoint using Circuit Breaker to check Rooms Service availability.</span>
+<span class="sd">    - If Rooms Service fails 3 times → breaker opens (fast-fail mode)</span>
+<span class="sd">    - After 10 seconds → breaker half-open</span>
+<span class="sd">    - If next request succeeds → breaker closes again</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">breaker</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+            <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">,</span>
+            <span class="s2">&quot;http://127.0.0.1:5002/rooms/health&quot;</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+                <span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rooms_service&quot;</span><span class="p">:</span> <span class="s2">&quot;reachable&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rooms_response&quot;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="p">}),</span> <span class="mi">200</span>
+
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rooms_service&quot;</span><span class="p">:</span> <span class="s2">&quot;unhealthy&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span>
+        <span class="p">}),</span> <span class="mi">500</span>
+
+    <span class="k">except</span> <span class="n">pybreaker</span><span class="o">.</span><span class="n">CircuitBreakerError</span><span class="p">:</span>
+        <span class="c1"># The breaker is OPEN: fast failure</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rooms_service&quot;</span><span class="p">:</span> <span class="s2">&quot;circuit_open&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Circuit breaker is OPEN — too many recent failures.&quot;</span>
+        <span class="p">}),</span> <span class="mi">503</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s2">&quot;service&quot;</span><span class="p">:</span> <span class="s2">&quot;users&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rooms_service&quot;</span><span class="p">:</span> <span class="s2">&quot;down&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="p">}),</span> <span class="mi">500</span></div>
+
 
 
     
 <span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">():</span>
     <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="n">limiter</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_SECRET_KEY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;secret_key&quot;</span>   
     <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;JWT_ACCESS_TOKEN_EXPIRES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># The token expires in one hour</span>
     <span class="n">jwt</span> <span class="o">=</span> <span class="n">JWTManager</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">users_bp</span><span class="p">)</span>
+    <span class="n">register_error_handlers</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">app</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>

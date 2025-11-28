@@ -1,6 +1,7 @@
+
 Rooms Service Documentation
 ===========================
 
-.. automodule:: .rooms_service.app
+.. automodule:: services.reviews_service.app
     :members:
     
