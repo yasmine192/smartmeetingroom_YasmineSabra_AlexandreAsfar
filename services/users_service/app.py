@@ -339,7 +339,7 @@ def init_admin():
 
 ### API to post a new user to the users table in database
 @users_bp.route("/users/register", methods= ["POST"])
-@limiter.limit("5 per hour")
+@limiter.limit("20 per hour")
 def register_user():
     """ 
     **Endpoint to register a new user**
