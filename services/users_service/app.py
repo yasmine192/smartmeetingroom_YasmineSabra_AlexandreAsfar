@@ -991,7 +991,7 @@ def assign_change_role(user_id):
 
     # check if the user is authorized (admins only)
     if role != "admin":
-        return jsonify({"error": "Only admins are authorized to check users' related information."}), 403
+        return jsonify({"error": "Only admins are authorized to modify users' related information."}), 403
     
     # Extract new role
     data= request.get_json() or {}
